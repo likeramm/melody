@@ -6,8 +6,11 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // 애플리케이션 쿼리용. Neon 등에서는 pgbouncer 를 거치는 풀링 연결입니다.
+  url       = env("DATABASE_URL")
+  // 마이그레이션 전용 직결 연결. 풀러를 거치면 migrate 가 실패합니다.
+  directUrl = env("DIRECT_URL")
 }
 
 // ─────────────────────────────────────────────────────────────
