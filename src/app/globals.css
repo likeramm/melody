@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+
+  /* MELODY 브랜드 팔레트 */
+  --color-brand-50: oklch(0.97 0.02 275);
+  --color-brand-100: oklch(0.94 0.04 275);
+  --color-brand-200: oklch(0.88 0.07 275);
+  --color-brand-300: oklch(0.79 0.11 275);
+  --color-brand-400: oklch(0.69 0.15 275);
+  --color-brand-500: oklch(0.6 0.18 275);
+  --color-brand-600: oklch(0.52 0.19 275);
+  --color-brand-700: oklch(0.44 0.17 275);
+  --color-brand-800: oklch(0.36 0.13 275);
+  --color-brand-900: oklch(0.29 0.09 275);
+}
+
+:root {
+  --background: oklch(0.985 0.002 275);
+  --foreground: oklch(0.22 0.02 275);
+  --card: oklch(1 0 0);
+  --border: oklch(0.92 0.005 275);
+  --muted: oklch(0.55 0.015 275);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  /* 모바일 사파리에서 가로 스크롤이 생기는 것을 막습니다. */
+  overflow-x: hidden;
+}
+
+/* 넓은 표는 페이지가 아니라 표 자신이 스크롤되도록 합니다. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
