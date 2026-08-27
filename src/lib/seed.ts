@@ -2,8 +2,10 @@ import type { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { addDays, subDays, subMonths } from "date-fns";
 
-const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? "admin@melody.kr";
-const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "melody1234";
+// ?? 는 빈 문자열을 통과시키므로 || 를 씁니다.
+// 환경변수가 빈 값으로 등록돼 있어도 기본값으로 되돌아갑니다.
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || "admin@melody.kr";
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || "melody1234";
 
 /**
  * 데모용 초기 데이터를 넣습니다.
@@ -13,10 +15,16 @@ export async function seedDatabase(prisma: PrismaClient) {
   const now = new Date();
   const hash = await bcrypt.hash(ADMIN_PASSWORD, 12);
 
+  // 잘못된 환경변수로 만들어졌을 수 있는 빈 이메일 계정을 정리합니다.
+  await prisma.user.deleteMany({ where: { email: "" } });
+
+  // 재실행 시 비밀번호를 다시 심어 복구할 수 있도록 합니다.
+  const repair = { passwordHash: hash, isActive: true };
+
   // ── 계정 ────────────────────────────────────────────────
   const director = await prisma.user.upsert({
     where: { email: ADMIN_EMAIL },
-    update: {},
+    update: repair,
     create: {
       email: ADMIN_EMAIL,
       passwordHash: hash,
@@ -28,7 +36,7 @@ export async function seedDatabase(prisma: PrismaClient) {
 
   const teacher = await prisma.user.upsert({
     where: { email: "teacher@melody.kr" },
-    update: {},
+    update: repair,
     create: {
       email: "teacher@melody.kr",
       passwordHash: hash,
@@ -40,7 +48,7 @@ export async function seedDatabase(prisma: PrismaClient) {
 
   const staff = await prisma.user.upsert({
     where: { email: "staff@melody.kr" },
-    update: {},
+    update: repair,
     create: {
       email: "staff@melody.kr",
       passwordHash: hash,
@@ -52,7 +60,7 @@ export async function seedDatabase(prisma: PrismaClient) {
 
   const parentUser = await prisma.user.upsert({
     where: { email: "parent@melody.kr" },
-    update: {},
+    update: repair,
     create: {
       email: "parent@melody.kr",
       passwordHash: hash,
