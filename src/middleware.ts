@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, homePathFor, isStaff, verifySession } from "@/lib/session";
 
 // 로그인 없이 접근 가능한 경로
-const PUBLIC_PATHS = ["/login", "/apply", "/api/cron"];
+// 이 경로들은 미들웨어를 통과시키되, API 는 각자 토큰으로 스스로를 보호합니다.
+const PUBLIC_PATHS = ["/login", "/apply", "/api/cron", "/api/admin/seed"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
