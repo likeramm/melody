@@ -3,10 +3,10 @@ import "server-only";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import type { Role, User } from "@prisma/client";
+import type { User } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE, isStaff, verifySession, type SessionPayload } from "@/lib/session";
+import { SESSION_COOKIE, verifySession, type SessionPayload } from "@/lib/session";
 
 const BCRYPT_ROUNDS = 12;
 
@@ -39,23 +39,4 @@ export async function requireUser(): Promise<User> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   return user;
-}
-
-/** 직원용 화면 진입점. 학부모 계정은 포털로 되돌립니다. */
-export async function requireStaff(): Promise<User> {
-  const user = await requireUser();
-  if (!isStaff(user.role)) redirect("/portal");
-  return user;
-}
-
-/** 특정 권한이 필요한 화면/액션에 사용합니다. */
-export async function requireRole(...roles: Role[]): Promise<User> {
-  const user = await requireUser();
-  if (!roles.includes(user.role)) redirect("/dashboard");
-  return user;
-}
-
-/** 원장·관리자만 가능한 결재/설정 동작인지 판정합니다. */
-export function canApprove(role: Role) {
-  return role === "ADMIN" || role === "DIRECTOR";
 }

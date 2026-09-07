@@ -1,91 +1,76 @@
 // enum 값 → 화면에 노출할 한국어 라벨.
-// UI 문구를 한 곳에 모아두어 용어가 화면마다 달라지는 것을 막습니다.
+// 용어가 화면마다 달라지지 않도록 한 곳에 모읍니다.
 
 export const ROLE_LABEL = {
-  ADMIN: "시스템 관리자",
-  DIRECTOR: "원장",
-  TEACHER: "강사",
+  ADMIN: "원장",
   STAFF: "담당자",
-  PARENT: "학부모",
 } as const;
 
-export const DEPARTMENT_LABEL = {
-  OPERATIONS: "운영",
-  MARKETING: "마케팅",
-  IT: "IT",
-  ACADEMIC: "학사",
-  MANAGEMENT: "경영",
-} as const;
-
-export const TASK_STATUS_LABEL = {
-  TODO: "대기",
-  IN_PROGRESS: "진행중",
-  NEED_APPROVAL: "결재 대기",
-  DONE: "완료",
-  ARCHIVED: "보관",
-} as const;
+// ── 1. 프로젝트 / To-do ──────────────────────────────────────
 
 export const TASK_PRIORITY_LABEL = {
-  URGENT: "긴급",
-  HIGH: "높음",
-  NORMAL: "보통",
-  LOW: "낮음",
+  P0: "P0",
+  P1: "P1",
+  P2: "P2",
+  LATER: "Later",
 } as const;
 
-export const RECURRENCE_LABEL = {
-  NONE: "반복 없음",
-  DAILY: "매일",
-  WEEKLY: "매주",
-  MONTHLY: "매월",
+export const TASK_PRIORITY_ORDER = ["P0", "P1", "P2", "LATER"] as const;
+
+export const TASK_STATUS_LABEL = {
+  PLANNED: "예정",
+  IN_PROGRESS: "진행중",
+  WAITING_EXTERNAL: "외부회신대기",
+  DONE: "완료",
+  ON_HOLD: "보류",
 } as const;
 
-export const ADMISSION_STAGE_LABEL = {
-  INQUIRY: "문의",
-  CONSULTATION: "예약/상담",
-  ASSESSMENT_COMPLETED: "시험 완료",
-  REGISTERED: "등록",
-  WITHDRAWN: "보류",
-} as const;
-
-/** 칸반 보드의 컬럼 순서 */
-export const ADMISSION_STAGE_ORDER = [
-  "INQUIRY",
-  "CONSULTATION",
-  "ASSESSMENT_COMPLETED",
-  "REGISTERED",
-  "WITHDRAWN",
+export const TASK_STATUS_ORDER = [
+  "PLANNED",
+  "IN_PROGRESS",
+  "WAITING_EXTERNAL",
+  "DONE",
+  "ON_HOLD",
 ] as const;
 
-export const ENGLISH_LEVEL_LABEL = {
-  BEGINNER: "입문",
-  ELEMENTARY: "초급",
-  INTERMEDIATE: "중급",
-  UPPER_INTERMEDIATE: "중상급",
-  ADVANCED: "고급",
+/** 아직 끝나지 않은 업무. 대시보드와 기본 목록의 기준입니다. */
+export const OPEN_TASK_STATUSES = ["PLANNED", "IN_PROGRESS", "WAITING_EXTERNAL"] as const;
+
+// ── 2. 학생 / 상담자 ─────────────────────────────────────────
+
+export const STUDENT_STATUS_LABEL = {
+  NEW_INQUIRY: "신규문의",
+  CONSULT_BOOKED: "상담예약",
+  ASSESSED: "진단완료",
+  ENROLLMENT_REVIEW: "등록검토",
+  ENROLLED: "등록",
+  ON_LEAVE: "휴원",
+  WITHDRAWN: "퇴원",
+  NOT_ENROLLED: "미등록",
 } as const;
 
-export const CONSULTATION_STATUS_LABEL = {
-  PENDING: "대기",
-  CONFIRMED: "예약 확정",
-  COMPLETED: "상담 완료",
-  NO_SHOW: "미방문",
-  CANCELLED: "취소",
+/** 파이프라인 진행 순서. 보드 컬럼 순서이기도 합니다. */
+export const STUDENT_STATUS_ORDER = [
+  "NEW_INQUIRY",
+  "CONSULT_BOOKED",
+  "ASSESSED",
+  "ENROLLMENT_REVIEW",
+  "ENROLLED",
+  "ON_LEAVE",
+  "WITHDRAWN",
+  "NOT_ENROLLED",
+] as const;
+
+/** 현재 학원에 다니고 있는 학생 */
+export const ACTIVE_STUDENT_STATUSES = ["ENROLLED"] as const;
+
+export const GUARDIAN_RELATION_LABEL = {
+  MOTHER: "모",
+  FATHER: "부",
+  OTHER: "기타",
 } as const;
 
-export const CONSULTATION_TYPE_LABEL = {
-  NEW_INQUIRY: "신규 문의",
-  ADMISSION_TEST: "입학 시험",
-  PROGRESS_REVIEW: "학습 상담",
-  COMPLAINT: "요청/불만",
-  RE_ENROLLMENT: "재등록",
-} as const;
-
-export const LIKELIHOOD_LABEL = {
-  HIGH: "높음",
-  MEDIUM: "보통",
-  LOW: "낮음",
-  UNKNOWN: "미정",
-} as const;
+// ── 3. 수업 기록 ─────────────────────────────────────────────
 
 export const ATTENDANCE_STATUS_LABEL = {
   PRESENT: "출석",
@@ -94,31 +79,28 @@ export const ATTENDANCE_STATUS_LABEL = {
   EXCUSED: "사유결석",
 } as const;
 
-export const ASSESSMENT_TYPE_LABEL = {
-  ADMISSION: "입학 시험",
-  MONTHLY: "월간 평가",
-  MIDTERM: "중간 평가",
-  FINAL: "기말 평가",
-  MOCK: "모의고사",
-} as const;
+export const ATTENDANCE_STATUS_ORDER = ["PRESENT", "LATE", "ABSENT", "EXCUSED"] as const;
 
-export const PROMPT_CATEGORY_LABEL = {
-  WORKSHEET: "워크시트",
-  DISCUSSION: "토론 질문",
-  MARKETING: "마케팅 카피",
-  ASSESSMENT: "평가 문항",
-  PARENT_REPORT: "학부모 리포트",
-  ETC: "기타",
-} as const;
-
-export const GUARDIAN_RELATION_LABEL = {
-  MOTHER: "모",
-  FATHER: "부",
-  OTHER: "기타",
-} as const;
-
-/** 평가 차트에 쓰이는 영역 정의. 순서가 곧 범례 순서입니다. */
+/** 수업 기록에서 평가하는 영역. 순서가 곧 표·차트의 순서입니다. */
 export const SKILL_AREAS = [
+  { key: "reading", label: "Reading" },
+  { key: "writing", label: "Writing" },
+  { key: "speaking", label: "Speaking" },
+  { key: "debate", label: "Debate" },
+] as const;
+
+export type SkillKey = (typeof SKILL_AREAS)[number]["key"];
+
+// ── 4. 입학시험 / 인터뷰 ─────────────────────────────────────
+
+export const ASSESSMENT_DECISION_LABEL = {
+  PASS: "Pass",
+  CONDITIONAL: "Conditional",
+  FAIL: "Fail",
+} as const;
+
+/** 입학시험 영역별 점수 */
+export const ASSESSMENT_AREAS = [
   { key: "reading", label: "Reading" },
   { key: "listening", label: "Listening" },
   { key: "speaking", label: "Speaking" },
@@ -127,4 +109,137 @@ export const SKILL_AREAS = [
   { key: "vocabulary", label: "Vocabulary" },
 ] as const;
 
-export type SkillKey = (typeof SKILL_AREAS)[number]["key"];
+export type AssessmentAreaKey = (typeof ASSESSMENT_AREAS)[number]["key"];
+
+// ── 5. Milestone ─────────────────────────────────────────────
+
+export const MILESTONE_TYPE_LABEL = {
+  OPENING: "개강",
+  RECRUITMENT: "모집",
+  PRE_REGISTRATION: "사전등록",
+  SEMESTER: "학기",
+  VACATION: "방학",
+  SPECIAL_CLASS: "특강",
+  ADMISSION_TEST: "입학시험",
+  EVENT: "이벤트",
+  VOLUNTEER: "봉사활동",
+  PARENT_CONSULT: "학부모 상담",
+  CONTENT: "콘텐츠 촬영",
+  AD: "광고",
+  CONSTRUCTION: "디자인·공사",
+  ADMIN: "행정",
+  ETC: "기타",
+} as const;
+
+export const MILESTONE_TYPE_ORDER = [
+  "OPENING",
+  "RECRUITMENT",
+  "PRE_REGISTRATION",
+  "SEMESTER",
+  "VACATION",
+  "SPECIAL_CLASS",
+  "ADMISSION_TEST",
+  "EVENT",
+  "VOLUNTEER",
+  "PARENT_CONSULT",
+  "CONTENT",
+  "AD",
+  "CONSTRUCTION",
+  "ADMIN",
+  "ETC",
+] as const;
+
+export const MILESTONE_STATUS_LABEL = {
+  PLANNED: "예정",
+  IN_PROGRESS: "진행중",
+  DONE: "완료",
+  ON_HOLD: "보류",
+} as const;
+
+// ── 7. 회계 ──────────────────────────────────────────────────
+
+export const PAYMENT_METHOD_LABEL = {
+  CASH: "현금",
+  CARD: "카드",
+  TRANSFER: "계좌",
+} as const;
+
+export const PAYMENT_METHOD_ORDER = ["TRANSFER", "CARD", "CASH"] as const;
+
+export const REVENUE_TYPE_LABEL = {
+  TUITION: "교습비",
+  COACHING: "코칭",
+  OTHER: "기타",
+} as const;
+
+export const EXPENSE_CATEGORY_LABEL = {
+  OUTSOURCING: "외주비",
+  ADVERTISING: "광고비",
+  FACILITY: "시설비",
+  SUPPLIES: "비품",
+  CONTENT: "콘텐츠",
+  RENT: "임대료",
+  UTILITY: "공과금",
+  SALARY: "인건비",
+  ETC: "기타",
+} as const;
+
+export const EXPENSE_CATEGORY_ORDER = [
+  "OUTSOURCING",
+  "ADVERTISING",
+  "FACILITY",
+  "SUPPLIES",
+  "CONTENT",
+  "RENT",
+  "UTILITY",
+  "SALARY",
+  "ETC",
+] as const;
+
+// ── 8. 외주업체 ──────────────────────────────────────────────
+
+export const VENDOR_EVENT_TYPE_LABEL = {
+  INQUIRY: "의뢰",
+  QUOTE: "견적",
+  ORDER: "발주",
+  DELIVERY: "수령",
+  REVISION: "수정요청",
+  PAYMENT: "결제",
+  COMPLETE: "완료",
+  ETC: "기타",
+} as const;
+
+export const VENDOR_EVENT_TYPE_ORDER = [
+  "INQUIRY",
+  "QUOTE",
+  "ORDER",
+  "DELIVERY",
+  "REVISION",
+  "PAYMENT",
+  "COMPLETE",
+  "ETC",
+] as const;
+
+/** 완료로 볼 수 있는 업체 이벤트. "외주 진행중" 판정에 씁니다. */
+export const VENDOR_DONE_EVENTS = ["COMPLETE"] as const;
+
+// ── 9. Follow-up ─────────────────────────────────────────────
+
+export const CONTACT_TYPE_LABEL = {
+  PHONE: "전화",
+  KAKAO: "카카오톡",
+  EMAIL: "이메일",
+  SMS: "문자",
+  VISIT: "방문",
+  ETC: "기타",
+} as const;
+
+export const CONTACT_TYPE_ORDER = ["PHONE", "KAKAO", "EMAIL", "SMS", "VISIT", "ETC"] as const;
+
+// ── 공통 포맷 ────────────────────────────────────────────────
+
+/** 금액을 1,234,000원 형태로 표시합니다. */
+export function fmtWon(amount: number | null | undefined) {
+  if (amount === null || amount === undefined) return "—";
+  return `${amount.toLocaleString("ko-KR")}원`;
+}

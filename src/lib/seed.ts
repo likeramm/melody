@@ -18,104 +18,152 @@ export async function seedDatabase(prisma: PrismaClient) {
   // 잘못된 환경변수로 만들어졌을 수 있는 빈 이메일 계정을 정리합니다.
   await prisma.user.deleteMany({ where: { email: "" } });
 
-  // 재실행 시 비밀번호를 다시 심어 복구할 수 있도록 합니다.
-  const repair = { passwordHash: hash, isActive: true };
-
-  // ── 계정 ────────────────────────────────────────────────
   const director = await prisma.user.upsert({
     where: { email: ADMIN_EMAIL },
-    update: repair,
-    create: {
-      email: ADMIN_EMAIL,
-      passwordHash: hash,
-      name: "김원장",
-      role: "DIRECTOR",
-      department: "MANAGEMENT",
-    },
+    update: { passwordHash: hash, isActive: true },
+    create: { email: ADMIN_EMAIL, passwordHash: hash, name: "원장", role: "ADMIN" },
   });
 
-  const teacher = await prisma.user.upsert({
-    where: { email: "teacher@melody.kr" },
-    update: repair,
-    create: {
-      email: "teacher@melody.kr",
-      passwordHash: hash,
-      name: "이강사",
-      role: "TEACHER",
-      department: "ACADEMIC",
-    },
-  });
+  // ── 프로젝트 (명세 1번의 예시 그대로) ──────────────────────
+  const projectNames = [
+    "오픈 준비",
+    "사전등록",
+    "개강 준비",
+    "마케팅",
+    "입학 시스템",
+    "커리큘럼",
+    "콘텐츠",
+    "UMPI",
+    "기타 To-do",
+    "개인",
+  ];
 
-  const staff = await prisma.user.upsert({
-    where: { email: "staff@melody.kr" },
-    update: repair,
-    create: {
-      email: "staff@melody.kr",
-      passwordHash: hash,
-      name: "박운영",
-      role: "STAFF",
-      department: "OPERATIONS",
-    },
-  });
+  const projects: Record<string, string> = {};
+  for (const [i, name] of projectNames.entries()) {
+    const p = await prisma.project.upsert({
+      where: { name },
+      update: {},
+      create: { name, sortOrder: i },
+    });
+    projects[name] = p.id;
+  }
 
-  const parentUser = await prisma.user.upsert({
-    where: { email: "parent@melody.kr" },
-    update: repair,
-    create: {
-      email: "parent@melody.kr",
-      passwordHash: hash,
-      name: "최수진",
-      role: "PARENT",
-    },
-  });
+  // ── 할 일 ─────────────────────────────────────────────────
+  if ((await prisma.task.count()) === 0) {
+    await prisma.task.createMany({
+      data: [
+        {
+          title: "간판 시안 최종 확정",
+          projectId: projects["오픈 준비"],
+          priority: "P0",
+          status: "WAITING_EXTERNAL",
+          dueDate: now,
+          memo: "업체 회신 대기 중",
+        },
+        {
+          title: "사전등록 신청서 폼 점검",
+          projectId: projects["사전등록"],
+          priority: "P0",
+          status: "IN_PROGRESS",
+          dueDate: now,
+        },
+        {
+          title: "블로그 개강 안내 글 발행",
+          projectId: projects["마케팅"],
+          priority: "P1",
+          status: "PLANNED",
+          dueDate: addDays(now, 3),
+        },
+        {
+          title: "입학시험 문항 2차 검토",
+          projectId: projects["입학 시스템"],
+          priority: "P1",
+          status: "PLANNED",
+          dueDate: addDays(now, 5),
+        },
+        {
+          title: "교재 발주 수량 재확인",
+          projectId: projects["개강 준비"],
+          priority: "P2",
+          status: "PLANNED",
+          dueDate: subDays(now, 2),
+        },
+        {
+          title: "홈페이지 리뉴얼 검토",
+          projectId: projects["기타 To-do"],
+          priority: "LATER",
+          status: "PLANNED",
+        },
+      ],
+    });
 
-  // ── 커리큘럼 & 수강반 ────────────────────────────────────
-  const curriculum = await prisma.curriculum.upsert({
-    where: { semester_title: { semester: "2026-2", title: "Intermediate Reading & Writing" } },
-    update: {},
-    create: {
-      semester: "2026-2",
-      title: "Intermediate Reading & Writing",
-      level: "INTERMEDIATE",
-      description: "중급반 2학기 커리큘럼. 논픽션 독해와 문단 쓰기를 중심으로 구성했습니다.",
-      lessons: {
-        create: [
-          {
-            week: 1,
-            topic: "Introduction: Why We Read",
-            objectives: "읽기 목적 파악하기 / 주제문 찾기",
-            vocabulary: ["purpose", "main idea", "supporting detail", "infer", "context"],
-            homework: "워크북 p.4-7",
-            authorId: teacher.id,
-          },
-          {
-            week: 2,
-            topic: "Cause and Effect",
-            objectives: "인과 관계 표현 익히기 / 원인-결과 문단 쓰기",
-            vocabulary: ["cause", "effect", "result in", "lead to", "consequence"],
-            homework: "인과 문단 1개 작성",
-            authorId: teacher.id,
-          },
-          {
-            week: 3,
-            topic: "Comparing Two Texts",
-            objectives: "두 지문의 관점 비교하기",
-            vocabulary: ["compare", "contrast", "perspective", "similarly", "whereas"],
-            homework: "비교표 완성",
-            authorId: teacher.id,
-          },
-          {
-            week: 4,
-            topic: "Summarizing Non-fiction",
-            objectives: "핵심만 남기고 요약하기",
-            vocabulary: ["summarize", "concise", "omit", "paraphrase", "essential"],
-            homework: "기사 1편 5문장 요약",
-            authorId: teacher.id,
-          },
+    // 하위 작업 예시
+    const parent = await prisma.task.findFirst({ where: { title: "간판 시안 최종 확정" } });
+    if (parent) {
+      await prisma.task.createMany({
+        data: [
+          { title: "색상 2안 비교", parentTaskId: parent.id, status: "DONE", priority: "P1" },
+          { title: "치수 실측 재확인", parentTaskId: parent.id, status: "PLANNED", priority: "P1" },
         ],
-      },
-    },
+      });
+      await prisma.taskLink.create({
+        data: { taskId: parent.id, label: "시안 폴더", url: "https://example.com/signage" },
+      });
+    }
+  }
+
+  // ── 학기 · 커리큘럼 · 수업 ─────────────────────────────────
+  const semester = await prisma.semester.upsert({
+    where: { name: "2026-2" },
+    update: {},
+    create: { name: "2026-2", startDate: subMonths(now, 1), endDate: addDays(now, 90) },
   });
+
+  let curriculum = await prisma.curriculum.findFirst({
+    where: { semesterId: semester.id, title: "Intermediate Reading & Writing" },
+  });
+  if (!curriculum) {
+    curriculum = await prisma.curriculum.create({
+      data: {
+        semesterId: semester.id,
+        title: "Intermediate Reading & Writing",
+        level: "Intermediate",
+        description: "논픽션 독해와 문단 쓰기를 중심으로 구성했습니다.",
+        lessons: {
+          create: [
+            {
+              week: 1,
+              sortOrder: 0,
+              topic: "Introduction: Why We Read",
+              learningObjective: "읽기 목적 파악하기 / 주제문 찾기",
+              reading: "Nonfiction excerpt (400 words)",
+              discussionQuestions: "왜 읽는가? 읽기 전 예측은 어떻게 하는가?",
+              writing: "주제문 3개 쓰기",
+              assignments: "워크북 p.4-7",
+            },
+            {
+              week: 2,
+              sortOrder: 1,
+              topic: "Cause and Effect",
+              learningObjective: "인과 관계 표현 익히기 / 원인-결과 문단 쓰기",
+              reading: "Article: Why Cities Flood",
+              discussionQuestions: "이 문제의 원인은 하나인가?",
+              writing: "인과 문단 1개",
+              assignments: "인과 문단 제출",
+            },
+            {
+              week: 3,
+              sortOrder: 2,
+              topic: "Comparing Two Texts",
+              learningObjective: "두 지문의 관점 비교하기",
+              writing: "비교표 완성",
+              assignments: "비교표",
+            },
+          ],
+        },
+      },
+    });
+  }
 
   const classGroup = await prisma.classGroup.upsert({
     where: { name: "Intermediate A" },
@@ -128,334 +176,307 @@ export async function seedDatabase(prisma: PrismaClient) {
     },
   });
 
-  // ── 학생 ────────────────────────────────────────────────
-  const existing = await prisma.student.findFirst({ where: { name: "최민준" } });
+  // ── 학생 · 상담자 ─────────────────────────────────────────
+  const seedStudents = [
+    {
+      name: "최민준",
+      school: "melody초등학교",
+      grade: "초5",
+      status: "ENROLLED" as const,
+      source: "지인 소개",
+      level: "Intermediate",
+      classGroupId: classGroup.id,
+      enrolledAt: subMonths(now, 5),
+      nextGoal: "논픽션 지문을 스스로 5문장으로 요약하기",
+      guardian: { name: "최수진", phone: "010-1234-5678", relation: "MOTHER" as const },
+    },
+    {
+      name: "정하윤",
+      grade: "초4",
+      status: "NEW_INQUIRY" as const,
+      source: "블로그",
+      guardian: { name: "정민호", phone: "010-2222-3333", relation: "FATHER" as const },
+    },
+    {
+      name: "오서준",
+      grade: "중1",
+      status: "CONSULT_BOOKED" as const,
+      source: "전화 문의",
+      consultedAt: addDays(now, 1),
+      guardian: { name: "오지영", phone: "010-4444-5555", relation: "MOTHER" as const },
+    },
+    {
+      name: "한지우",
+      grade: "초6",
+      status: "ASSESSED" as const,
+      source: "학부모 소개",
+      assessedAt: subDays(now, 5),
+      assessmentResult: "레벨 테스트 결과 중급 상단. 어휘력이 강점.",
+      recommendedClass: "Intermediate A",
+      guardian: { name: "한상우", phone: "010-6666-7777", relation: "FATHER" as const },
+    },
+    {
+      name: "윤서아",
+      grade: "초5",
+      status: "NOT_ENROLLED" as const,
+      source: "전단지",
+      notEnrolledReason: "거리가 멀어 통학이 어렵다고 하심",
+      nextContactAt: addDays(now, 30),
+      guardian: { name: "윤미경", phone: "010-8888-9999", relation: "MOTHER" as const },
+    },
+  ];
 
-  const minjun =
-    existing ??
-    (await prisma.student.create({
-      data: {
-        name: "최민준",
-        nameEn: "Minjun Choi",
-        school: "melody초등학교",
-        grade: "초5",
-        englishLevel: "INTERMEDIATE",
-        stage: "REGISTERED",
-        currentGoal: "논픽션 지문 요약을 스스로 5문장으로 정리하기",
-        enrolledAt: subMonths(now, 5),
-        homeroomTeacherId: teacher.id,
-        classGroupId: classGroup.id,
-        guardians: {
-          create: {
-            name: "최수진",
-            phone: "010-1234-5678",
-            email: "parent@melody.kr",
-            relation: "MOTHER",
-            isPrimary: true,
-            userId: parentUser.id,
+  const studentIds: Record<string, string> = {};
+  for (const s of seedStudents) {
+    const { guardian, ...data } = s;
+    let found = await prisma.student.findFirst({ where: { name: s.name } });
+    if (!found) {
+      found = await prisma.student.create({
+        data: {
+          ...data,
+          firstInquiryAt: subMonths(now, 6),
+          guardians: { create: [{ ...guardian, isPrimary: true }] },
+        },
+      });
+    }
+    studentIds[s.name] = found.id;
+  }
+
+  // ── 수업 회차 · 학생별 기록 ────────────────────────────────
+  if ((await prisma.classSession.count()) === 0) {
+    const minjunId = studentIds["최민준"];
+    for (let i = 5; i >= 1; i -= 1) {
+      const date = subDays(now, i * 7);
+      date.setHours(0, 0, 0, 0);
+      const base = 60 + (6 - i) * 4;
+      await prisma.classSession.create({
+        data: {
+          date,
+          classGroupId: classGroup.id,
+          topic: `Week ${6 - i} 수업`,
+          content: "논픽션 지문 독해와 문단 쓰기 연습",
+          homework: "워크북 해당 단원",
+          teacherId: director.id,
+          records: {
+            create: [
+              {
+                studentId: minjunId,
+                attendance: i === 3 ? "LATE" : "PRESENT",
+                homeworkSubmitted: i !== 2,
+                quizScore: base + 5,
+                testScore: i % 2 === 0 ? base : null,
+                reading: base + 8,
+                writing: base,
+                speaking: base - 4,
+                debate: base - 6,
+                teacherComment:
+                  i === 1 ? "쓰기 문단 구성이 눈에 띄게 좋아졌습니다." : "꾸준히 참여하고 있습니다.",
+              },
+            ],
           },
         },
-        assessments: {
-          create: [
-            {
-              type: "ADMISSION",
-              takenAt: subMonths(now, 5),
-              reading: 62,
-              listening: 58,
-              speaking: 55,
-              writing: 50,
-              grammar: 60,
-              vocabulary: 57,
-              totalScore: 57,
-              teacherComment: "기초 문법은 안정적이나 쓰기에서 문단 구성이 약합니다.",
-              parentSharedAt: subMonths(now, 5),
-              assessorId: teacher.id,
-            },
-            {
-              type: "MONTHLY",
-              takenAt: subMonths(now, 3),
-              reading: 71,
-              listening: 66,
-              speaking: 63,
-              writing: 61,
-              grammar: 70,
-              vocabulary: 68,
-              totalScore: 67,
-              teacherComment: "독해 속도가 눈에 띄게 빨라졌습니다.",
-              parentSharedAt: subMonths(now, 3),
-              assessorId: teacher.id,
-            },
-            {
-              type: "MIDTERM",
-              takenAt: subMonths(now, 1),
-              reading: 80,
-              listening: 74,
-              speaking: 70,
-              writing: 72,
-              grammar: 78,
-              vocabulary: 76,
-              totalScore: 75,
-              teacherComment: "쓰기 점수가 크게 올랐습니다. 스피킹 유창성만 보완하면 좋겠습니다.",
-              parentSharedAt: subMonths(now, 1),
-              assessorId: teacher.id,
-            },
-          ],
+      });
+    }
+  }
+
+  // ── 입학시험 ──────────────────────────────────────────────
+  if ((await prisma.assessment.count()) === 0) {
+    await prisma.assessment.create({
+      data: {
+        studentId: studentIds["한지우"],
+        takenAt: subDays(now, 5),
+        reading: 82,
+        listening: 76,
+        speaking: 70,
+        writing: 74,
+        grammar: 80,
+        vocabulary: 85,
+        totalScore: 78,
+        resultSummary: "중급 상단. 어휘력이 강점이고 스피킹 보완이 필요합니다.",
+        interviewNote: "학습 동기가 뚜렷하고 표현 시도가 적극적입니다.",
+        decision: "PASS",
+        recommendation: "Intermediate A 반 추천",
+        deliveredAt: subDays(now, 3),
+        assessorId: director.id,
+      },
+    });
+  }
+
+  // ── Milestone ─────────────────────────────────────────────
+  if ((await prisma.milestone.count()) === 0) {
+    await prisma.milestone.createMany({
+      data: [
+        {
+          title: "2026 가을학기 공식 개강",
+          type: "OPENING",
+          goal: "정원 12명 확보",
+          dueDate: addDays(now, 14),
+          status: "IN_PROGRESS",
+          progress: 60,
+          projectId: projects["개강 준비"],
+          ownerId: director.id,
         },
-        notes: {
+        {
+          title: "사전등록 모집기간",
+          type: "RECRUITMENT",
+          startAt: subDays(now, 7),
+          dueDate: addDays(now, 7),
+          status: "IN_PROGRESS",
+          progress: 45,
+          projectId: projects["사전등록"],
+          ownerId: director.id,
+        },
+        {
+          title: "간판 시공",
+          type: "CONSTRUCTION",
+          dueDate: addDays(now, 10),
+          status: "PLANNED",
+          progress: 20,
+          projectId: projects["오픈 준비"],
+          ownerId: director.id,
+        },
+      ],
+    });
+  }
+
+  // ── 외주업체 + 진행 기록 ──────────────────────────────────
+  let vendor = await prisma.vendor.findFirst({ where: { name: "브랜드디자인 스튜디오" } });
+  if (!vendor) {
+    vendor = await prisma.vendor.create({
+      data: {
+        name: "브랜드디자인 스튜디오",
+        field: "디자인",
+        contactName: "김디자인",
+        phone: "010-1111-2222",
+        kakaoId: "brand_studio",
+        firstContactAt: subDays(now, 14),
+        quoteAmount: 1500000,
+        finalAmount: 1400000,
+        contractAt: subDays(now, 12),
+        workDescription: "간판 및 배너 디자인",
+        satisfaction: 4,
+        wouldReuse: true,
+        events: {
           create: [
-            {
-              body: "다음 달 학교 시험 기간에는 수업을 화/목으로 옮겨 달라고 요청하셨습니다.",
-              isParentRequest: true,
-              authorId: staff.id,
-            },
+            { date: subDays(now, 14), type: "INQUIRY", description: "디자인 의뢰" },
+            { date: subDays(now, 12), type: "QUOTE", description: "견적 수령", amount: 1500000 },
+            { date: subDays(now, 8), type: "DELIVERY", description: "AI 파일 수령" },
+            { date: subDays(now, 6), type: "ORDER", description: "제작업체 전달" },
           ],
         },
       },
-    }));
-
-  // 최근 3주 출결
-  if (minjun) {
-    for (let i = 0; i < 12; i += 1) {
-      const date = subDays(now, i * 2);
-      date.setHours(0, 0, 0, 0);
-      await prisma.attendance.upsert({
-        where: { studentId_date: { studentId: minjun.id, date } },
-        update: {},
-        create: {
-          studentId: minjun.id,
-          classGroupId: classGroup.id,
-          date,
-          status: i === 3 ? "LATE" : i === 7 ? "ABSENT" : "PRESENT",
-        },
-      });
-    }
+    });
   }
 
-  // 파이프라인 각 단계 샘플
-  const pipelineSamples = [
-    { name: "정하윤", grade: "초4", stage: "INQUIRY" as const },
-    { name: "오서준", grade: "중1", stage: "CONSULTATION" as const },
-    { name: "한지우", grade: "초6", stage: "ASSESSMENT_COMPLETED" as const },
-  ];
-
-  for (const s of pipelineSamples) {
-    const found = await prisma.student.findFirst({ where: { name: s.name } });
-    if (!found) {
-      await prisma.student.create({
-        data: { name: s.name, grade: s.grade, stage: s.stage, englishLevel: "ELEMENTARY" },
-      });
-    }
-  }
-
-  // ── 상담 ────────────────────────────────────────────────
-  const consultationCount = await prisma.consultation.count();
-  if (consultationCount === 0) {
-    await prisma.consultation.createMany({
+  // ── 회계 ──────────────────────────────────────────────────
+  if ((await prisma.payment.count()) === 0) {
+    await prisma.payment.createMany({
       data: [
         {
-          applicantStudentName: "정하윤",
-          applicantGrade: "초4",
-          applicantLevel: "ELEMENTARY",
-          parentName: "정민호",
-          parentPhone: "010-2222-3333",
-          type: "NEW_INQUIRY",
-          status: "PENDING",
-          preferredAt: addDays(now, 2),
-          source: "homepage",
+          studentId: studentIds["최민준"],
+          item: "9월 교습비",
+          amount: 350000,
+          dueAt: subDays(now, 3),
+          paidAt: subDays(now, 3),
+          method: "TRANSFER",
+          revenueType: "TUITION",
         },
         {
-          applicantStudentName: "오서준",
-          applicantGrade: "중1",
-          parentName: "오지영",
-          parentPhone: "010-4444-5555",
-          type: "ADMISSION_TEST",
-          status: "CONFIRMED",
-          scheduledAt: addDays(now, 1),
-          counselorId: director.id,
-          source: "phone",
+          studentId: studentIds["최민준"],
+          item: "10월 교습비",
+          amount: 350000,
+          dueAt: addDays(now, 4),
+          method: "TRANSFER",
+          revenueType: "TUITION",
         },
         {
-          applicantStudentName: "한지우",
-          applicantGrade: "초6",
-          parentName: "한상우",
-          parentPhone: "010-6666-7777",
-          type: "ADMISSION_TEST",
-          status: "COMPLETED",
-          scheduledAt: subDays(now, 5),
-          summary: "레벨 테스트 결과 중급 상단. 어휘력이 강점.",
-          recommendedProgram: "Intermediate A",
-          admissionLikelihood: "HIGH",
-          followUpAt: addDays(now, 3),
-          counselorId: director.id,
-          source: "referral",
+          studentId: studentIds["한지우"],
+          item: "입학 등록비",
+          amount: 100000,
+          dueAt: subDays(now, 5),
+          method: "CARD",
+          revenueType: "OTHER",
         },
       ],
     });
   }
 
-  // ── 업무 (반복 규칙 + 실제 업무) ─────────────────────────
-  const templates = [
-    {
-      title: "신규 상담 문의 확인",
-      category: "일일 점검",
-      recurrence: "DAILY" as const,
-      assigneeId: staff.id,
-    },
-    {
-      title: "주간 운영 리뷰 미팅",
-      category: "주간 운영",
-      recurrence: "WEEKLY" as const,
-      assigneeId: director.id,
-    },
-    {
-      title: "월간 주요 운영지표 점검",
-      category: "경영 지표",
-      recurrence: "MONTHLY" as const,
-      assigneeId: director.id,
-    },
-  ];
-
-  for (const t of templates) {
-    const found = await prisma.task.findFirst({ where: { title: t.title, isTemplate: true } });
-    if (!found) {
-      await prisma.task.create({
-        data: { ...t, isTemplate: true, createdById: director.id, priority: "NORMAL" },
-      });
-    }
-  }
-
-  const taskCount = await prisma.task.count({ where: { isTemplate: false } });
-  if (taskCount === 0) {
-    await prisma.task.createMany({
+  if ((await prisma.expense.count()) === 0) {
+    await prisma.expense.createMany({
       data: [
         {
-          title: "9월 신규 등원생 교재 발주",
-          category: "운영",
-          status: "IN_PROGRESS",
-          priority: "HIGH",
-          dueDate: now,
-          assigneeId: staff.id,
-          createdById: director.id,
+          spentAt: subDays(now, 10),
+          item: "간판 디자인 착수금",
+          amount: 700000,
+          category: "OUTSOURCING",
+          vendorId: vendor.id,
+          projectId: projects["오픈 준비"],
+          hasTaxInvoice: true,
         },
         {
-          title: "학부모 설명회 안내문 최종 검토",
-          category: "마케팅",
-          status: "NEED_APPROVAL",
-          priority: "URGENT",
-          dueDate: now,
-          assigneeId: staff.id,
-          createdById: staff.id,
+          spentAt: subDays(now, 6),
+          item: "네이버 검색광고",
+          amount: 300000,
+          category: "ADVERTISING",
+          projectId: projects["마케팅"],
         },
         {
-          title: "Intermediate A 3주차 워크시트 제작",
-          category: "학사",
-          status: "TODO",
-          priority: "NORMAL",
-          dueDate: addDays(now, 3),
-          assigneeId: teacher.id,
-          createdById: director.id,
-        },
-        {
-          title: "홈페이지 상담 폼 연동 테스트",
-          category: "IT",
-          status: "TODO",
-          priority: "LOW",
-          dueDate: addDays(now, 5),
-          assigneeId: staff.id,
-          createdById: director.id,
+          spentAt: subDays(now, 4),
+          item: "교재 1차 발주",
+          amount: 420000,
+          category: "SUPPLIES",
+          projectId: projects["개강 준비"],
+          hasTaxInvoice: true,
         },
       ],
     });
   }
 
-  // ── AI 프롬프트 라이브러리 ───────────────────────────────
-  const promptCount = await prisma.promptTemplate.count();
-  if (promptCount === 0) {
-    await prisma.promptTemplate.createMany({
+  // ── 연락 기록 / Follow-up ─────────────────────────────────
+  if ((await prisma.contactLog.count()) === 0) {
+    await prisma.contactLog.createMany({
       data: [
         {
-          title: "주차별 워크시트 생성",
-          category: "WORKSHEET",
-          description: "커리큘럼 주차 정보를 넣으면 수업용 워크시트 초안을 만듭니다.",
-          variables: ["topic", "level", "vocabulary"],
-          body: [
-            "당신은 한국 초·중등 영어학원의 베테랑 교재 개발자입니다.",
-            "",
-            "주제: {{topic}}",
-            "학습자 수준: {{level}}",
-            "필수 어휘: {{vocabulary}}",
-            "",
-            "위 조건으로 A4 1장 분량의 워크시트를 만들어 주세요. 구성은 다음을 따릅니다.",
-            "1) 워밍업 질문 3개 (한국어 지시문, 영어 답변)",
-            "2) 150단어 내외의 짧은 지문 — 필수 어휘를 모두 자연스럽게 포함",
-            "3) 이해도 확인 문제 5개 (객관식 3, 서술형 2)",
-            "4) 어휘 매칭 문제",
-            "5) 정답 및 교사용 해설",
-          ].join("\n"),
-          authorId: teacher.id,
+          studentId: studentIds["정하윤"],
+          contactedAt: subDays(now, 2),
+          type: "PHONE",
+          summary: "상담 일정 조율 통화. 이번 주말 방문 희망.",
+          nextContactAt: now,
+          followUpNeeded: true,
+          ownerId: director.id,
         },
         {
-          title: "수업용 토론 질문 세트",
-          category: "DISCUSSION",
-          description: "말하기 수업에서 바로 쓸 수 있는 단계별 토론 질문을 뽑습니다.",
-          variables: ["topic", "level"],
-          body: [
-            "주제 '{{topic}}' 로 {{level}} 수준 학생들과 진행할 토론 질문을 만들어 주세요.",
-            "",
-            "- 아이스브레이킹 질문 3개 (한 문장으로 답할 수 있는 것)",
-            "- 심화 질문 4개 (근거를 들어 답해야 하는 것)",
-            "- 찬반이 갈리는 질문 2개",
-            "- 각 질문마다 학생이 쓸 수 있는 표현 2개를 함께 제시",
-          ].join("\n"),
-          authorId: teacher.id,
+          studentId: studentIds["윤서아"],
+          contactedAt: subDays(now, 20),
+          type: "KAKAO",
+          summary: "미등록 안내. 다음 학기에 다시 연락 요청하심.",
+          nextContactAt: addDays(now, 30),
+          followUpNeeded: true,
+          ownerId: director.id,
         },
         {
-          title: "학부모 리포트 코멘트 초안",
-          category: "PARENT_REPORT",
-          description: "평가 점수를 넣으면 학부모용 코멘트 문장을 만들어 줍니다.",
-          variables: ["studentName", "scores", "goal"],
-          body: [
-            "학생 이름: {{studentName}}",
-            "영역별 점수: {{scores}}",
-            "현재 학습 목표: {{goal}}",
-            "",
-            "위 데이터를 바탕으로 학부모님께 보낼 코멘트를 작성해 주세요.",
-            "- 존댓말, 4~6문장",
-            "- 강점 → 개선이 필요한 영역 → 다음 달 학습 계획 순서",
-            "- 점수를 그대로 나열하지 말고 변화의 의미를 설명할 것",
-            "- 단정적인 표현 대신 관찰된 사실 위주로 서술할 것",
-          ].join("\n"),
-          authorId: director.id,
-        },
-        {
-          title: "신규 모집 마케팅 카피",
-          category: "MARKETING",
-          description: "설명회·모집 공지에 사용할 카피 초안입니다.",
-          variables: ["program", "target", "channel"],
-          body: [
-            "프로그램: {{program}}",
-            "대상: {{target}}",
-            "게시 채널: {{channel}}",
-            "",
-            "MELODY 영어학원의 톤앤매너(차분하고 과장 없는, 학습 효과 중심)로 카피를 작성해 주세요.",
-            "- 헤드라인 3안",
-            "- 본문 2안 (각 200자 내외)",
-            "- 해시태그 5개",
-            "- 과장 광고로 읽힐 수 있는 표현은 사용하지 마세요.",
-          ].join("\n"),
-          authorId: director.id,
+          vendorId: vendor.id,
+          contactedAt: subDays(now, 1),
+          type: "KAKAO",
+          summary: "시공 일정 확인 요청.",
+          nextContactAt: now,
+          followUpNeeded: true,
+          ownerId: director.id,
         },
       ],
     });
   }
 
   return {
-    accounts: [ADMIN_EMAIL, "teacher@melody.kr", "staff@melody.kr", "parent@melody.kr"],
-    users: await prisma.user.count(),
-    students: await prisma.student.count(),
+    account: ADMIN_EMAIL,
+    projects: await prisma.project.count(),
     tasks: await prisma.task.count(),
-    consultations: await prisma.consultation.count(),
-    assessments: await prisma.assessment.count(),
-    prompts: await prisma.promptTemplate.count(),
+    students: await prisma.student.count(),
+    sessions: await prisma.classSession.count(),
+    milestones: await prisma.milestone.count(),
+    vendors: await prisma.vendor.count(),
+    payments: await prisma.payment.count(),
+    expenses: await prisma.expense.count(),
+    contactLogs: await prisma.contactLog.count(),
   };
 }

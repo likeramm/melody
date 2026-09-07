@@ -57,15 +57,3 @@ export const sessionCookieOptions = {
   path: "/",
   maxAge: SESSION_MAX_AGE,
 };
-
-// 학부모(PARENT)는 HQ 내부 화면에 접근할 수 없고,
-// 직원 계정은 학부모 포털에 접근할 필요가 없습니다.
-export const STAFF_ROLES: Role[] = ["ADMIN", "DIRECTOR", "TEACHER", "STAFF"];
-
-export function isStaff(role: Role | undefined | null) {
-  return !!role && STAFF_ROLES.includes(role);
-}
-
-export function homePathFor(role: Role) {
-  return role === "PARENT" ? "/portal" : "/dashboard";
-}

@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { verifyPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE, homePathFor, sessionCookieOptions, signSession } from "@/lib/session";
+import { SESSION_COOKIE, sessionCookieOptions, signSession } from "@/lib/session";
 
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email("이메일 형식이 올바르지 않습니다."),
@@ -57,7 +57,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   // 오픈 리다이렉트를 막기 위해 내부 경로만 허용합니다.
   const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
   // typedRoutes 는 정적 경로만 추론하므로, 검증을 마친 동적 경로는 단언이 필요합니다.
-  redirect((safeNext ?? homePathFor(user.role)) as Route);
+  redirect((safeNext ?? "/dashboard") as Route);
 }
 
 export async function logout() {

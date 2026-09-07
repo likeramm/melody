@@ -1,5 +1,10 @@
-// MELODY 통합 학원 관리 플랫폼 (HQ) — 데이터 모델
-// 기획서 4장 ERD 초안을 관계형 스키마로 구체화한 것입니다.
+// MELODY 학원 운영 시스템 — 데이터 모델
+//
+// 설계 원칙
+//  1. 미등록 학생도 삭제하지 않고 lead 로 남깁니다. 학생과 상담자는 한 테이블입니다.
+//  2. 수업 기록은 "수업 1회" 단위로 입력하고, 학생별 progress 는 그 기록을 조회해 만듭니다.
+//     별도의 누적 테이블이나 동기화 로직을 두지 않습니다.
+//  3. 파일은 링크(URL)로 보관합니다. 실제 업로드는 스토리지 연동이 필요합니다.
 
 generator client {
   provider = "prisma-client-js"
@@ -7,185 +12,210 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  // 애플리케이션 쿼리용. Neon 등에서는 pgbouncer 를 거치는 풀링 연결입니다.
   url       = env("DATABASE_URL")
-  // 마이그레이션 전용 직결 연결. 풀러를 거치면 migrate 가 실패합니다.
-  // Neon 의 Vercel 연동이 이 이름으로 직결 주소를 자동 주입하므로
-  // 환경변수를 손으로 추가할 필요가 없습니다.
+  // 마이그레이션 전용 직결 연결. Neon 의 Vercel 연동이 자동 주입합니다.
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 // ─────────────────────────────────────────────────────────────
-// 1. 계정 및 권한
+// 계정
 // ─────────────────────────────────────────────────────────────
 
 enum Role {
-  ADMIN // 시스템 관리자
-  DIRECTOR // 원장
-  TEACHER // 강사
-  STAFF // 운영/마케팅/IT 담당자
-  PARENT // 학부모 (학부모 포털 전용)
-}
-
-enum Department {
-  OPERATIONS // 운영
-  MARKETING // 마케팅
-  IT // IT
-  ACADEMIC // 학사
-  MANAGEMENT // 경영
+  ADMIN // 원장
+  STAFF // 강사 / 운영 담당
 }
 
 model User {
-  id           String      @id @default(cuid())
-  email        String      @unique
+  id           String    @id @default(cuid())
+  email        String    @unique
   passwordHash String
   name         String
   phone        String?
-  role         Role        @default(STAFF)
-  department   Department?
-  isActive     Boolean     @default(true)
+  role         Role      @default(ADMIN)
+  isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  assignedTasks    Task[]           @relation("TaskAssignee")
-  createdTasks     Task[]           @relation("TaskCreator")
-  approvedTasks    Task[]           @relation("TaskApprover")
-  consultations    Consultation[]   @relation("ConsultationCounselor")
-  assessments      Assessment[]     @relation("AssessmentAssessor")
-  homeroomStudents Student[]        @relation("HomeroomTeacher")
-  guardianOf       Guardian[]
-  lessonsCreated   Lesson[]         @relation("LessonAuthor")
-  promptTemplates  PromptTemplate[] @relation("PromptAuthor")
-  notes            StudentNote[]    @relation("NoteAuthor")
+  tasks         Task[]
+  milestones    Milestone[]
+  contactLogs   ContactLog[]
+  classSessions ClassSession[]
+  assessments   Assessment[]
 
-  @@index([role])
   @@index([isActive])
 }
 
 // ─────────────────────────────────────────────────────────────
-// 2. 업무 대시보드 (Master Task System)
+// 1. 프로젝트 / To-do
 // ─────────────────────────────────────────────────────────────
 
-enum TaskStatus {
-  TODO // 대기
-  IN_PROGRESS // 진행중
-  NEED_APPROVAL // 결재 대기
-  DONE // 완료
-  ARCHIVED // 보관
+model Project {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String? // 화면 구분용 색상 (hex)
+  sortOrder   Int      @default(0)
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tasks        Task[]
+  milestones   Milestone[]
+  expenses     Expense[]
+  vendorEvents VendorEvent[]
+
+  @@index([isArchived, sortOrder])
 }
 
 enum TaskPriority {
-  URGENT // 긴급
-  HIGH // 높음
-  NORMAL // 보통
-  LOW // 낮음
+  P0
+  P1
+  P2
+  LATER
 }
 
-enum RecurrenceRule {
-  NONE
-  DAILY
-  WEEKLY
-  MONTHLY
+enum TaskStatus {
+  PLANNED // 예정
+  IN_PROGRESS // 진행중
+  WAITING_EXTERNAL // 외부회신대기
+  DONE // 완료
+  ON_HOLD // 보류
 }
 
 model Task {
   id          String       @id @default(cuid())
   title       String
-  description String?
-  status      TaskStatus   @default(TODO)
-  priority    TaskPriority @default(NORMAL)
+  memo        String?
+  priority    TaskPriority @default(P2)
+  status      TaskStatus   @default(PLANNED)
   dueDate     DateTime?
   completedAt DateTime?
-  relatedLink String?
-  category    String? // 예: 문의 확인 / 주간 리뷰 / 운영지표 점검
+  sortOrder   Int          @default(0)
 
-  assigneeId   String?
-  assignee     User?     @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  createdById  String?
-  createdBy    User?     @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  approvedById String?
-  approvedBy   User?     @relation("TaskApprover", fields: [approvedById], references: [id], onDelete: SetNull)
-  approvedAt   DateTime?
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  // 반복 업무 자동 생성용.
-  // isTemplate=true 인 Task 는 리스트에 뜨지 않는 "생성 규칙"이며,
-  // 스케줄러가 이를 복제해 실제 Task 를 만들어냅니다.
-  recurrence RecurrenceRule @default(NONE)
-  isTemplate Boolean        @default(false)
-  templateId String? // 이 Task 를 만들어낸 템플릿 Task 의 id
-  periodKey  String? // 생성 주기 식별자 (예: 2026-08-26 / 2026-W35 / 2026-08)
+  // 하위 작업. 부모가 지워지면 하위도 함께 지웁니다.
+  parentTaskId String?
+  parentTask   Task?   @relation("Subtask", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  subtasks     Task[]  @relation("Subtask")
+
+  assigneeId String?
+  assignee   User?   @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // 같은 템플릿이 같은 주기에 두 번 생성되는 것을 DB 레벨에서 차단합니다.
-  @@unique([templateId, periodKey])
-  @@index([assigneeId, status])
-  @@index([dueDate])
-  @@index([status, priority])
-  @@index([isTemplate, recurrence])
+  links TaskLink[]
+
+  @@index([status, dueDate])
+  @@index([priority, dueDate])
+  @@index([projectId, status])
+  @@index([parentTaskId])
+}
+
+// 할 일에 붙는 파일/링크
+model TaskLink {
+  id     String @id @default(cuid())
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label  String
+  url    String
+
+  @@index([taskId])
 }
 
 // ─────────────────────────────────────────────────────────────
-// 3. 학생 CRM 및 입학 파이프라인
+// 2. 학생 / 상담자 (등록하지 않은 문의도 여기에 남습니다)
 // ─────────────────────────────────────────────────────────────
 
-enum AdmissionStage {
-  INQUIRY // 문의
-  CONSULTATION // 예약/상담
-  ASSESSMENT_COMPLETED // 시험 완료
-  REGISTERED // 등록
-  WITHDRAWN // 이탈/보류
-}
-
-enum EnglishLevel {
-  BEGINNER
-  ELEMENTARY
-  INTERMEDIATE
-  UPPER_INTERMEDIATE
-  ADVANCED
+enum StudentStatus {
+  NEW_INQUIRY // 신규문의
+  CONSULT_BOOKED // 상담예약
+  ASSESSED // 진단완료
+  ENROLLMENT_REVIEW // 등록검토
+  ENROLLED // 등록
+  ON_LEAVE // 휴원
+  WITHDRAWN // 퇴원
+  NOT_ENROLLED // 미등록
 }
 
 model Student {
-  id           String         @id @default(cuid())
-  name         String
-  nameEn       String?
-  birthDate    DateTime?
-  school       String?
-  grade        String? // 예: 초5 / 중2
-  phone        String?
-  englishLevel EnglishLevel?
-  stage        AdmissionStage @default(INQUIRY)
-  stageOrder   Int            @default(0) // 칸반 보드 내 정렬 순서
-  currentGoal  String? // 현재 학습 목표 (Current Goal)
-  memo         String?
-  enrolledAt   DateTime? // 등록 확정일
-  isActive     Boolean        @default(true)
+  id     String  @id @default(cuid())
+  name   String
+  school String?
+  grade  String? // 예: 초5 / 중2
+  phone  String?
 
-  homeroomTeacherId String?
-  homeroomTeacher   User?       @relation("HomeroomTeacher", fields: [homeroomTeacherId], references: [id], onDelete: SetNull)
-  classGroupId      String?
-  classGroup        ClassGroup? @relation(fields: [classGroupId], references: [id], onDelete: SetNull)
+  status StudentStatus @default(NEW_INQUIRY)
+
+  source         String? // 어디서 알게 됐는지
+  firstInquiryAt DateTime? // 최초 문의일
+  consultedAt    DateTime? // 상담일
+  assessedAt     DateTime? // 입학시험 / 인터뷰일
+
+  consultationNote String? // 상담 내용
+  assessmentResult String? // 시험 결과 요약
+  level            String? // 레벨
+  evaluation       String? // 평가
+  recommendedClass String? // 추천반
+
+  enrolledAt        DateTime? // 등록일
+  notEnrolledReason String? // 미등록 사유
+  nextContactAt     DateTime? // 추후 연락일
+  nextGoal          String? // 다음 목표
+
+  memo String?
+
+  classGroupId String?
+  classGroup   ClassGroup? @relation(fields: [classGroupId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  guardians     Guardian[]
-  consultations Consultation[]
-  assessments   Assessment[]
-  attendances   Attendance[]
-  notes         StudentNote[]
+  guardians      Guardian[]
+  assessments    Assessment[]
+  sessionRecords StudentSessionRecord[]
+  portfolios     Portfolio[]
+  monthlyReviews MonthlyReview[]
+  contactLogs    ContactLog[]
+  payments       Payment[]
 
-  @@index([stage, stageOrder])
-  @@index([isActive])
-  @@index([homeroomTeacherId])
+  @@index([status])
+  @@index([nextContactAt])
   @@index([name])
 }
 
+enum GuardianRelation {
+  MOTHER
+  FATHER
+  OTHER
+}
+
+model Guardian {
+  id        String           @id @default(cuid())
+  studentId String
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  name      String
+  relation  GuardianRelation @default(MOTHER)
+  phone     String?
+  email     String?
+  isPrimary Boolean          @default(true)
+  memo      String?
+  createdAt DateTime         @default(now())
+
+  @@index([studentId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// 3. 수업 기록 / Progress
+// ─────────────────────────────────────────────────────────────
+
 model ClassGroup {
   id        String   @id @default(cuid())
-  name      String   @unique // 예: Intermediate A
+  name      String   @unique
   schedule  String? // 예: 월/수/금 17:00
   capacity  Int?
   isActive  Boolean  @default(true)
@@ -195,48 +225,36 @@ model ClassGroup {
   curriculumId String?
   curriculum   Curriculum? @relation(fields: [curriculumId], references: [id], onDelete: SetNull)
 
-  students    Student[]
-  attendances Attendance[]
+  students Student[]
+  sessions ClassSession[]
 }
 
-enum GuardianRelation {
-  MOTHER
-  FATHER
-  OTHER
-}
+/// 수업 1회. 여기에 한 번 입력하면 소속 학생들의 progress 가 함께 쌓입니다.
+model ClassSession {
+  id       String   @id @default(cuid())
+  date     DateTime @db.Date
+  topic    String? // 수업 주제
+  content  String? // 수업 내용
+  homework String? // 숙제
+  note     String?
 
-// 학부모 ↔ 학생 연결. 학부모 포털의 접근 권한은 전적으로 이 테이블을 근거로 판정합니다.
-model Guardian {
-  id        String           @id @default(cuid())
-  studentId String
-  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  userId    String? // 포털 계정 (Role.PARENT). 계정 미발급 시 null
-  user      User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
-  name      String
-  phone     String?
-  email     String?
-  relation  GuardianRelation @default(MOTHER)
-  isPrimary Boolean          @default(true)
-  createdAt DateTime         @default(now())
+  classGroupId String?
+  classGroup   ClassGroup? @relation(fields: [classGroupId], references: [id], onDelete: SetNull)
 
-  @@unique([studentId, userId])
-  @@index([studentId])
-  @@index([userId])
-}
+  // 어떤 레슨 플랜으로 진행했는지
+  lessonId String?
+  lesson   Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
 
-// 학부모 요청사항 및 내부 상담 메모
-model StudentNote {
-  id              String    @id @default(cuid())
-  studentId       String
-  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  authorId        String?
-  author          User?     @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-  body            String
-  isParentRequest Boolean   @default(false)
-  resolvedAt      DateTime?
-  createdAt       DateTime  @default(now())
+  teacherId String?
+  teacher   User?   @relation(fields: [teacherId], references: [id], onDelete: SetNull)
 
-  @@index([studentId, createdAt])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  records StudentSessionRecord[]
+
+  @@index([date])
+  @@index([classGroupId, date])
 }
 
 enum AttendanceStatus {
@@ -246,145 +264,187 @@ enum AttendanceStatus {
   EXCUSED // 사유결석
 }
 
-model Attendance {
-  id           String           @id @default(cuid())
-  studentId    String
-  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  classGroupId String?
-  classGroup   ClassGroup?      @relation(fields: [classGroupId], references: [id], onDelete: SetNull)
-  date         DateTime         @db.Date
-  status       AttendanceStatus @default(PRESENT)
-  note         String?
-  createdAt    DateTime         @default(now())
+/// 수업 1회 × 학생 1명. 출결·과제·점수·코멘트가 여기에 남습니다.
+model StudentSessionRecord {
+  id        String       @id @default(cuid())
+  sessionId String
+  session   ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  @@unique([studentId, date])
-  @@index([date])
-}
+  attendance        AttendanceStatus @default(PRESENT)
+  homeworkSubmitted Boolean? // 과제 제출 여부
 
-// ─────────────────────────────────────────────────────────────
-// 4. 상담 & 예약 파이프라인
-// ─────────────────────────────────────────────────────────────
+  quizScore Int? // Quiz 점수
+  testScore Int? // Test 점수
 
-enum ConsultationStatus {
-  PENDING // 대기 (폼 접수 직후)
-  CONFIRMED // 예약 확정 (캘린더 등록됨)
-  COMPLETED // 상담 완료
-  NO_SHOW // 미방문
-  CANCELLED // 취소
-}
+  // 영역별 평가 (0~100). 해당 없는 영역은 비워 둡니다.
+  reading  Int?
+  writing  Int?
+  speaking Int?
+  debate   Int?
 
-enum ConsultationType {
-  NEW_INQUIRY // 신규 문의
-  ADMISSION_TEST // 입학 시험
-  PROGRESS_REVIEW // 정기 학습 상담
-  COMPLAINT // 불만/요청 상담
-  RE_ENROLLMENT // 재등록 상담
-}
+  teacherComment String? // 강사 코멘트
+  parentFeedback String? // 학부모 피드백
 
-enum AdmissionLikelihood {
-  HIGH
-  MEDIUM
-  LOW
-  UNKNOWN
-}
-
-model Consultation {
-  id String @id @default(cuid())
-
-  // 접수 시점에는 아직 Student 레코드가 없을 수 있으므로
-  // 신청 폼에 적힌 학생 정보를 스냅샷으로 함께 보관합니다.
-  studentId            String?
-  student              Student?      @relation(fields: [studentId], references: [id], onDelete: SetNull)
-  applicantStudentName String
-  applicantGrade       String?
-  applicantLevel       EnglishLevel?
-
-  parentName  String
-  parentPhone String
-  parentEmail String?
-
-  type        ConsultationType   @default(NEW_INQUIRY)
-  status      ConsultationStatus @default(PENDING)
-  requestedAt DateTime           @default(now()) // 폼 접수 시각
-  preferredAt DateTime? // 학부모 희망 시간
-  scheduledAt DateTime? // 확정된 상담 시각
-  durationMin Int                @default(30)
-
-  // 상담 결과 (CRM 기록)
-  summary             String?
-  recommendedProgram  String?
-  admissionLikelihood AdmissionLikelihood @default(UNKNOWN)
-  followUpAt          DateTime?
-
-  counselorId String?
-  counselor   User?   @relation("ConsultationCounselor", fields: [counselorId], references: [id], onDelete: SetNull)
-
-  // Google Calendar 2-way 동기화용
-  googleEventId String?   @unique
-  syncedAt      DateTime?
-
-  source    String? // 유입 경로: homepage / phone / walk-in / referral
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([status, scheduledAt])
-  @@index([requestedAt])
-  @@index([followUpAt])
+  @@unique([sessionId, studentId])
   @@index([studentId])
 }
 
+/// Portfolio 결과물
+model Portfolio {
+  id         String    @id @default(cuid())
+  studentId  String
+  student    Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  title      String
+  url        String? // 결과물 링크
+  producedAt DateTime?
+  memo       String?
+  createdAt  DateTime  @default(now())
+
+  @@index([studentId, producedAt])
+}
+
+/// 월별 성장 기록. Phase 2 에서 자동 요약으로 채울 자리입니다.
+model MonthlyReview {
+  id        String  @id @default(cuid())
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  yearMonth String // "2026-08"
+
+  attendanceRate Int? // 출석률 (%)
+  homeworkRate   Int? // 과제 수행률 (%)
+  summary        String? // 주요 코멘트 요약
+  milestone      String? // 이 달의 milestone
+  nextGoal       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, yearMonth])
+  @@index([yearMonth])
+}
+
 // ─────────────────────────────────────────────────────────────
-// 5. 평가 (Assessment)
+// 4. 입학시험 / 인터뷰
 // ─────────────────────────────────────────────────────────────
 
-enum AssessmentType {
-  ADMISSION // 입학 시험
-  MONTHLY // 월간 평가
-  MIDTERM // 중간 평가
-  FINAL // 기말 평가
-  MOCK // 모의고사
+enum AssessmentDecision {
+  PASS
+  CONDITIONAL
+  FAIL
 }
 
 model Assessment {
-  id        String         @id @default(cuid())
+  id        String   @id @default(cuid())
   studentId String
-  student   Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  type      AssessmentType @default(MONTHLY)
-  takenAt   DateTime
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  takenAt   DateTime // 시험일
 
-  // 영역별 점수 (0~100). 미응시 영역은 null 로 두어 차트에서 제외합니다.
+  // 영역별 점수 (0~100)
   reading    Int?
   listening  Int?
   speaking   Int?
   writing    Int?
   grammar    Int?
   vocabulary Int?
+  totalScore Int?
 
-  totalScore     Int? // 환산 총점. null 이면 응시 영역 평균으로 계산합니다.
-  teacherComment String?
-  parentSharedAt DateTime? // 학부모 포털 공개 시각. null 이면 비공개
+  resultSummary  String? // 시험 결과
+  interviewNote  String? // 인터뷰 내용
+  decision       AssessmentDecision? // Pass / Conditional / Fail
+  recommendation String? // 추천 의견
+  reportUrl      String? // 진단보고서 링크
+  deliveredAt    DateTime? // 결과 전달일
 
   assessorId String?
-  assessor   User?   @relation("AssessmentAssessor", fields: [assessorId], references: [id], onDelete: SetNull)
+  assessor   User?   @relation(fields: [assessorId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([studentId, takenAt])
-  @@index([type])
 }
 
 // ─────────────────────────────────────────────────────────────
-// 6. 커리큘럼 & 레슨 플랜
+// 5. 학원 전체 일정 / Milestone
 // ─────────────────────────────────────────────────────────────
 
+enum MilestoneType {
+  OPENING // 공식 개강일
+  RECRUITMENT // 모집기간
+  PRE_REGISTRATION // 사전등록 프로그램
+  SEMESTER // 학기 시작 / 종료
+  VACATION // 방학
+  SPECIAL_CLASS // 방학 특강
+  ADMISSION_TEST // 입학시험
+  EVENT // 이벤트
+  VOLUNTEER // 봉사활동
+  PARENT_CONSULT // 학부모 상담기간
+  CONTENT // 콘텐츠 촬영
+  AD // 광고 일정
+  CONSTRUCTION // 디자인 / 공사
+  ADMIN // 행정
+  ETC
+}
+
+enum MilestoneStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+  ON_HOLD
+}
+
+model Milestone {
+  id       String          @id @default(cuid())
+  title    String
+  type     MilestoneType   @default(ETC)
+  goal     String? // 목표
+  startAt  DateTime?
+  dueDate  DateTime?
+  status   MilestoneStatus @default(PLANNED)
+  progress Int             @default(0) // 완료율 0~100
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  ownerId   String?
+  owner     User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dueDate])
+  @@index([status, dueDate])
+}
+
+// ─────────────────────────────────────────────────────────────
+// 6. Curriculum Database (학기 → 커리큘럼 → 수업)
+// ─────────────────────────────────────────────────────────────
+
+model Semester {
+  id        String    @id @default(cuid())
+  name      String    @unique // 예: 2026-1
+  startDate DateTime?
+  endDate   DateTime?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  curriculums Curriculum[]
+}
+
 model Curriculum {
-  id          String        @id @default(cuid())
-  title       String // 예: 2026 Spring Intermediate
-  semester    String // 예: 2026-1
-  level       EnglishLevel?
+  id         String   @id @default(cuid())
+  semesterId String
+  semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+
+  title       String
+  level       String?
   description String?
-  isActive    Boolean       @default(true)
+  isActive    Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -392,8 +452,7 @@ model Curriculum {
   lessons     Lesson[]
   classGroups ClassGroup[]
 
-  @@unique([semester, title])
-  @@index([isActive])
+  @@unique([semesterId, title])
 }
 
 model Lesson {
@@ -401,52 +460,226 @@ model Lesson {
   curriculumId String
   curriculum   Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
 
-  week        Int // 주차
-  topic       String
-  objectives  String? // 학습 목표
-  vocabulary  String[] // 필수 어휘
-  homework    String?
-  materialUrl String? // 자료 링크
-  notes       String?
+  week      Int?
+  sortOrder Int    @default(0)
+  topic     String
 
-  authorId String?
-  author   User?   @relation("LessonAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  learningObjective   String?
+  reading             String?
+  lecture             String?
+  discussionQuestions String?
+  writing             String?
+  studentPortfolio    String? // 이 수업에서 만드는 결과물 안내
+  lecturePptUrl       String?
+  worksheetUrl        String?
+  assignments         String?
+  teacherNotes        String?
+
+  usedAt       DateTime? // 실제 사용한 날짜
+  revisionNote String? // 수정사항
+
+  // 다음 학기에 복제했을 때 원본을 가리킵니다.
+  copiedFromId String?
+  copiedFrom   Lesson?  @relation("LessonCopy", fields: [copiedFromId], references: [id], onDelete: SetNull)
+  copies       Lesson[] @relation("LessonCopy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([curriculumId, week])
-  @@index([curriculumId, week])
+  sessions ClassSession[]
+
+  @@index([curriculumId, sortOrder])
 }
 
 // ─────────────────────────────────────────────────────────────
-// 7. AI 프롬프트 라이브러리
+// 7. 회계 (내부 관리용)
 // ─────────────────────────────────────────────────────────────
 
-enum PromptCategory {
-  WORKSHEET // 워크시트 생성
-  DISCUSSION // 토론 질문
-  MARKETING // 마케팅 카피
-  ASSESSMENT // 평가 문항
-  PARENT_REPORT // 학부모 리포트
+enum PaymentMethod {
+  CASH // 현금
+  CARD // 카드
+  TRANSFER // 계좌
+}
+
+enum RevenueType {
+  TUITION // 교습비
+  COACHING // 코칭
+  OTHER
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  // 예정일과 실제 결제일을 나눠, paidAt 이 비어 있으면 미납으로 봅니다.
+  dueAt       DateTime? // 결제 예정일
+  paidAt      DateTime? // 실제 결제일. null 이면 미납
+  item        String // 항목
+  amount      Int // 금액 (원)
+  method      PaymentMethod @default(TRANSFER)
+  revenueType RevenueType   @default(TUITION)
+
+  isRefunded Boolean   @default(false) // 환불 여부
+  refundedAt DateTime?
+  memo       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([paidAt])
+  @@index([dueAt])
+  @@index([studentId, paidAt])
+}
+
+enum ExpenseCategory {
+  OUTSOURCING // 외주비
+  ADVERTISING // 광고비
+  FACILITY // 시설비
+  SUPPLIES // 비품
+  CONTENT // 콘텐츠
+  RENT // 임대료
+  UTILITY // 공과금
+  SALARY // 인건비
+  ETC // 기타
+}
+
+model Expense {
+  id       String          @id @default(cuid())
+  spentAt  DateTime // 날짜
+  item     String // 항목
+  amount   Int // 금액 (원)
+  category ExpenseCategory @default(ETC)
+  method   PaymentMethod   @default(TRANSFER)
+
+  vendorId  String?
+  vendor    Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  receiptUrl    String? // 영수증 링크
+  hasTaxInvoice Boolean @default(false) // 세금계산서 여부
+  memo          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([spentAt])
+  @@index([category, spentAt])
+  @@index([vendorId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// 8. 외주업체 / Vendor
+// ─────────────────────────────────────────────────────────────
+
+model Vendor {
+  id          String  @id @default(cuid())
+  name        String // 업체명
+  contactName String? // 담당자
+  phone       String?
+  email       String?
+  kakaoId     String? // 카카오톡
+  field       String? // 분야 (디자인 / 인쇄 / 시공 …)
+
+  firstContactAt DateTime? // 최초 연락일
+  quoteAmount    Int? // 견적
+  finalAmount    Int? // 최종 금액
+  contractAt     DateTime? // 계약일
+  workAt         DateTime? // 작업일
+  paidAt         DateTime? // 결제일
+
+  workDescription String? // 작업 내용
+  revisionRequest String? // 수정 요청
+  resultUrl       String? // 결과물 링크
+
+  satisfaction Int? // 만족도 1~5
+  wouldReuse   Boolean? // 다시 쓸 업체인지
+  memo         String?
+
+  nextContactAt DateTime? // 다음 연락 예정일
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events      VendorEvent[]
+  expenses    Expense[]
+  contactLogs ContactLog[]
+
+  @@index([name])
+  @@index([nextContactAt])
+}
+
+enum VendorEventType {
+  INQUIRY // 의뢰 / 문의
+  QUOTE // 견적
+  ORDER // 발주
+  DELIVERY // 결과물 수령
+  REVISION // 수정 요청
+  PAYMENT // 결제
+  COMPLETE // 완료 / 시공
   ETC
 }
 
-model PromptTemplate {
-  id          String         @id @default(cuid())
-  title       String
-  category    PromptCategory @default(ETC)
-  body        String // {{topic}}, {{level}} 형태의 치환 변수를 포함한 본문
-  variables   String[] // 치환 변수 목록
-  description String?
-  useCount    Int            @default(0)
-  isActive    Boolean        @default(true)
+/// 업체 진행 상황을 시간순으로 남깁니다.
+/// 예: 8/27 디자인 의뢰 → 8/30 AI 파일 수령 → 9/1 제작업체 전달 → 9/5 결제 → 9/10 시공
+model VendorEvent {
+  id          String          @id @default(cuid())
+  vendorId    String
+  vendor      Vendor          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  date        DateTime        @db.Date
+  type        VendorEventType @default(ETC)
+  description String
+  amount      Int?
 
-  authorId String?
-  author   User?   @relation("PromptAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([vendorId, date])
+  @@index([date])
+}
+
+// ─────────────────────────────────────────────────────────────
+// 9. Follow-up / 연락 기록
+// ─────────────────────────────────────────────────────────────
+
+enum ContactType {
+  PHONE
+  KAKAO
+  EMAIL
+  SMS
+  VISIT
+  ETC
+}
+
+/// 학생·학부모·업체와의 연락을 한 곳에 남깁니다.
+/// 대상은 학생 또는 업체 중 하나이며, 둘 다 비면 일반 메모로 취급합니다.
+model ContactLog {
+  id String @id @default(cuid())
+
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  vendorId  String?
+  vendor    Vendor?  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  contactedAt DateTime // 마지막 연락일
+  type        ContactType @default(PHONE)
+  summary     String // 연락 내용
+
+  nextContactAt  DateTime? // 다음 연락 예정일
+  followUpNeeded Boolean   @default(false) // Follow-up 필요 여부
+  completedAt    DateTime? // Follow-up 처리 완료 시각
+
+  ownerId String? // 담당자
+  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([category, isActive])
+  @@index([contactedAt])
+  @@index([followUpNeeded, nextContactAt])
+  @@index([studentId, contactedAt])
+  @@index([vendorId, contactedAt])
 }

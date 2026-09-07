@@ -37,17 +37,12 @@ export function fmtRelative(d: Date | null | undefined) {
   return d ? formatDistanceToNowStrict(d, { addSuffix: true, locale: ko }) : "—";
 }
 
-/**
- * 반복 업무가 "이번 주기에 이미 생성되었는지"를 판정하는 키.
- * Task.periodKey 에 저장되며 (templateId, periodKey) 유니크 제약이 중복 생성을 막습니다.
- */
-export function periodKeyFor(rule: "DAILY" | "WEEKLY" | "MONTHLY", now = new Date()) {
-  switch (rule) {
-    case "DAILY":
-      return format(now, "yyyy-MM-dd");
-    case "WEEKLY":
-      return format(startOfWeek(now, WEEK_OPTS), "yyyy-'W'II", { locale: ko });
-    case "MONTHLY":
-      return format(now, "yyyy-MM");
-  }
+/** yyyy-MM. MonthlyReview.yearMonth 키로 씁니다. */
+export function yearMonthOf(d: Date = new Date()) {
+  return format(d, "yyyy-MM");
+}
+
+/** <input type="date"> 에 넣을 수 있는 형태 */
+export function toDateInput(d: Date | null | undefined) {
+  return d ? format(d, "yyyy-MM-dd") : "";
 }

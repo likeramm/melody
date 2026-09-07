@@ -1,12 +1,12 @@
 import { AppShell } from "@/components/app-shell";
-import { requireStaff } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 
-export default async function HQLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireStaff();
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const user = await requireUser();
 
   return (
-    <AppShell user={{ name: user.name, role: user.role }} logoutAction={logout}>
+    <AppShell user={{ name: user.name }} logoutAction={logout}>
       {children}
     </AppShell>
   );
