@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
 
 import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { fmtDate } from "@/lib/dates";
@@ -95,13 +95,7 @@ export default async function SessionsPage() {
                     </span>
                     <form action={deleteSession} className="shrink-0">
                       <input type="hidden" name="id" value={s.id} />
-                      <button
-                        type="submit"
-                        aria-label="삭제"
-                        className="rounded p-1.5 text-slate-300 transition hover:bg-rose-50 hover:text-rose-600"
-                      >
-                        <Trash2 size={15} aria-hidden />
-                      </button>
+                      <ConfirmButton label="삭제" />
                     </form>
                   </div>
                 </Card>

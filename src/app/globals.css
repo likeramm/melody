@@ -41,8 +41,37 @@ body {
   overflow-x: hidden;
 }
 
-/* 넓은 표는 페이지가 아니라 표 자신이 스크롤되도록 합니다. */
+/* 넓은 표는 페이지가 아니라 표 자신이 스크롤되고,
+   길어지면 머리글이 따라다니도록 합니다. */
 .table-scroll {
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 70vh;
   -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--card);
+  box-shadow: inset 0 -1px 0 var(--border);
+}
+
+/* 키보드로 이동할 때 어디에 있는지 항상 보이게 합니다. */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* 숫자 칸은 자릿수가 흔들리지 않게 고정폭으로 */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 저장 중에는 폼 전체를 살짝 흐리게 해 두 번 누르는 것을 막습니다. */
+form:has(button[type="submit"]:disabled) {
+  opacity: 0.7;
+  pointer-events: none;
 }

@@ -190,3 +190,22 @@ export async function createClassGroup(_prev: FormState, formData: FormData): Pr
   revalidatePath("/students");
   return { ok: true };
 }
+
+export async function updateSession(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const parsed = sessionSchema
+    .extend({ id: z.string().min(1) })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+
+  const { id, date, ...d } = parsed.data;
+  const sessionDate = new Date(date);
+  if (Number.isNaN(sessionDate.getTime())) return { error: "수업일이 올바르지 않습니다." };
+
+  await prisma.classSession.update({ where: { id }, data: { ...d, date: sessionDate } });
+
+  revalidatePath(`/sessions/${id}`);
+  revalidatePath("/sessions");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}

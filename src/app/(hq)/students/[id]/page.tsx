@@ -7,7 +7,7 @@ import { ScoreChart, type ChartPoint } from "@/components/score-chart";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle, StatCard } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { fmtDate } from "@/lib/dates";
+import { fmtDate, toDateInput } from "@/lib/dates";
 import {
   ASSESSMENT_AREAS,
   ASSESSMENT_DECISION_LABEL,
@@ -19,6 +19,7 @@ import {
   fmtWon,
 } from "@/lib/labels";
 
+import { StudentEditForm } from "../edit-form";
 import { NewAssessmentForm, NewGuardianForm, NewPortfolioForm } from "../student-forms";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +47,8 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
   await requireUser();
   const { id } = await params;
 
-  const student = await prisma.student.findUnique({
+  const [student, classGroups] = await Promise.all([
+    prisma.student.findUnique({
     where: { id },
     include: {
       classGroup: { select: { name: true, schedule: true } },
@@ -65,8 +67,14 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
           },
         },
       },
-    },
-  });
+      },
+    }),
+    prisma.classGroup.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   if (!student) notFound();
 
@@ -115,7 +123,37 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
       <PageHeader
         title={student.name}
         description={[student.school, student.grade].filter(Boolean).join(" · ") || undefined}
-        action={<Badge tone="brand">{STUDENT_STATUS_LABEL[student.status]}</Badge>}
+        action={
+          <div className="flex items-center gap-2">
+            <Badge tone="brand">{STUDENT_STATUS_LABEL[student.status]}</Badge>
+            <StudentEditForm
+              classGroups={classGroups}
+              student={{
+                id: student.id,
+                name: student.name,
+                school: student.school,
+                grade: student.grade,
+                phone: student.phone,
+                status: student.status,
+                source: student.source,
+                firstInquiryAt: toDateInput(student.firstInquiryAt),
+                consultedAt: toDateInput(student.consultedAt),
+                assessedAt: toDateInput(student.assessedAt),
+                enrolledAt: toDateInput(student.enrolledAt),
+                nextContactAt: toDateInput(student.nextContactAt),
+                consultationNote: student.consultationNote,
+                assessmentResult: student.assessmentResult,
+                level: student.level,
+                evaluation: student.evaluation,
+                recommendedClass: student.recommendedClass,
+                notEnrolledReason: student.notEnrolledReason,
+                nextGoal: student.nextGoal,
+                memo: student.memo,
+                classGroupId: student.classGroupId,
+              }}
+            />
+          </div>
+        }
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">

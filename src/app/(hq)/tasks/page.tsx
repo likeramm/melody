@@ -1,12 +1,13 @@
 import type { Metadata, Route } from "next";
 import type { Prisma, TaskPriority, TaskStatus } from "@prisma/client";
 import Link from "next/link";
-import { ExternalLink, Trash2 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { fmtDate, todayRange, weekRange } from "@/lib/dates";
+import { fmtDate, toDateInput, todayRange, weekRange } from "@/lib/dates";
 import {
   OPEN_TASK_STATUSES,
   TASK_PRIORITY_LABEL,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/labels";
 
 import { deleteTask, toggleTaskDone } from "./actions";
+import { AddSubtaskForm, TaskEditForm } from "./edit-form";
 import { NewProjectForm, NewTaskForm } from "./task-forms";
 
 export const metadata: Metadata = { title: "할 일" };
@@ -278,6 +280,22 @@ export default async function TasksPage({
                           ))}
                         </div>
                       )}
+
+                      <div className="flex flex-wrap items-center gap-3">
+                        <TaskEditForm
+                          projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+                          task={{
+                            id: task.id,
+                            title: task.title,
+                            memo: task.memo,
+                            priority: task.priority,
+                            status: task.status,
+                            dueDate: toDateInput(task.dueDate),
+                            projectId: task.projectId,
+                          }}
+                        />
+                        <AddSubtaskForm parentTaskId={task.id} />
+                      </div>
                     </div>
 
                     <div className="flex shrink-0 items-center gap-2">
@@ -286,13 +304,7 @@ export default async function TasksPage({
                       </span>
                       <form action={deleteTask}>
                         <input type="hidden" name="id" value={task.id} />
-                        <button
-                          type="submit"
-                          aria-label="삭제"
-                          className="rounded p-1.5 text-slate-300 transition hover:bg-rose-50 hover:text-rose-600"
-                        >
-                          <Trash2 size={15} aria-hidden />
-                        </button>
+                        <ConfirmButton label="삭제" />
                       </form>
                     </div>
                   </div>

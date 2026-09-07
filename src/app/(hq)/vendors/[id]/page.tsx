@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink, Trash2 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { fmtDate } from "@/lib/dates";
+import { fmtDate, toDateInput } from "@/lib/dates";
 import {
   CONTACT_TYPE_LABEL,
   EXPENSE_CATEGORY_LABEL,
@@ -15,7 +16,7 @@ import {
 } from "@/lib/labels";
 
 import { deleteVendorEvent } from "../actions";
-import { NewVendorEventForm } from "../vendor-forms";
+import { NewVendorEventForm, VendorEditForm } from "../vendor-forms";
 
 export const dynamic = "force-dynamic";
 
@@ -77,9 +78,33 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
         title={vendor.name}
         description={[vendor.field, vendor.contactName].filter(Boolean).join(" · ") || undefined}
         action={
-          vendor.events.length > 0 ? (
-            <Badge tone={done ? "success" : "warning"}>{done ? "완료" : "진행중"}</Badge>
-          ) : null
+          <div className="flex flex-wrap items-center gap-2">
+            {vendor.events.length > 0 && (
+              <Badge tone={done ? "success" : "warning"}>{done ? "완료" : "진행중"}</Badge>
+            )}
+            <VendorEditForm
+              vendor={{
+                id: vendor.id,
+                name: vendor.name,
+                field: vendor.field,
+                contactName: vendor.contactName,
+                phone: vendor.phone,
+                email: vendor.email,
+                kakaoId: vendor.kakaoId,
+                firstContactAt: toDateInput(vendor.firstContactAt),
+                contractAt: toDateInput(vendor.contractAt),
+                workAt: toDateInput(vendor.workAt),
+                paidAt: toDateInput(vendor.paidAt),
+                quoteAmount: vendor.quoteAmount,
+                finalAmount: vendor.finalAmount,
+                workDescription: vendor.workDescription,
+                revisionRequest: vendor.revisionRequest,
+                resultUrl: vendor.resultUrl,
+                satisfaction: vendor.satisfaction,
+                wouldReuse: vendor.wouldReuse,
+              }}
+            />
+          </div>
         }
       />
 
@@ -178,13 +203,7 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                   <form action={deleteVendorEvent} className="shrink-0">
                     <input type="hidden" name="id" value={e.id} />
                     <input type="hidden" name="vendorId" value={vendor.id} />
-                    <button
-                      type="submit"
-                      aria-label="삭제"
-                      className="rounded p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-600"
-                    >
-                      <Trash2 size={13} aria-hidden />
-                    </button>
+                    <ConfirmButton label="삭제" />
                   </form>
                 </li>
               ))}

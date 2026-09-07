@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import type { MilestoneStatus } from "@prisma/client";
-import { Trash2 } from "lucide-react";
 
 import { Badge, Card, EmptyState, PageHeader, SectionTitle, StatCard } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { fmtDate, monthRange, todayRange } from "@/lib/dates";
+import { fmtDate, monthRange, toDateInput, todayRange } from "@/lib/dates";
 import { MILESTONE_STATUS_LABEL, MILESTONE_TYPE_LABEL } from "@/lib/labels";
 
 import { deleteMilestone, updateMilestoneProgress } from "./actions";
+import { MilestoneEditForm } from "./edit-form";
 import { NewMilestoneForm } from "./milestone-form";
 
 export const metadata: Metadata = { title: "학원 일정" };
@@ -150,16 +151,26 @@ export default async function SchedulePage() {
                         </form>
                       </td>
                       <td className="px-4 py-2.5">
-                        <form action={deleteMilestone}>
-                          <input type="hidden" name="id" value={m.id} />
-                          <button
-                            type="submit"
-                            aria-label="삭제"
-                            className="rounded p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-600"
-                          >
-                            <Trash2 size={14} aria-hidden />
-                          </button>
-                        </form>
+                        <div className="flex items-center gap-1">
+                          <MilestoneEditForm
+                            projects={projects}
+                            milestone={{
+                              id: m.id,
+                              title: m.title,
+                              type: m.type,
+                              goal: m.goal,
+                              startAt: toDateInput(m.startAt),
+                              dueDate: toDateInput(m.dueDate),
+                              status: m.status,
+                              progress: m.progress,
+                              projectId: m.projectId,
+                            }}
+                          />
+                          <form action={deleteMilestone}>
+                            <input type="hidden" name="id" value={m.id} />
+                            <ConfirmButton label="삭제" />
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   );

@@ -1,8 +1,8 @@
 import type { Metadata, Route } from "next";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
 
 import { Badge, Card, EmptyState, PageHeader, SectionTitle, StatCard } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { fmtDate, todayRange } from "@/lib/dates";
@@ -193,13 +193,7 @@ export default async function FollowUpsPage() {
                       <td className="px-4 py-2.5">
                         <form action={deleteContactLog}>
                           <input type="hidden" name="id" value={c.id} />
-                          <button
-                            type="submit"
-                            aria-label="삭제"
-                            className="rounded p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-600"
-                          >
-                            <Trash2 size={14} aria-hidden />
-                          </button>
+                          <ConfirmButton label="삭제" />
                         </form>
                       </td>
                     </tr>

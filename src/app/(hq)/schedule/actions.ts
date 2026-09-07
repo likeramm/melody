@@ -99,3 +99,21 @@ export async function deleteMilestone(formData: FormData) {
   revalidatePath("/schedule");
   revalidatePath("/dashboard");
 }
+
+export async function updateMilestone(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const parsed = milestoneSchema
+    .extend({ id: z.string().min(1) })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+
+  const { id, ...d } = parsed.data;
+  await prisma.milestone.update({
+    where: { id },
+    data: { ...d, progress: d.status === "DONE" ? 100 : d.progress },
+  });
+
+  revalidatePath("/schedule");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}

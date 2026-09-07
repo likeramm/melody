@@ -5,9 +5,10 @@ import { notFound } from "next/navigation";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { fmtDate } from "@/lib/dates";
+import { fmtDate, toDateInput } from "@/lib/dates";
 
 import { addStudentToSession } from "../actions";
+import { SessionEditForm } from "../edit-form";
 import { RecordTable, type RecordRow } from "../record-table";
 
 export const dynamic = "force-dynamic";
@@ -46,15 +47,27 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
   // 아직 이 수업에 들어 있지 않은 학생 (반을 옮겼거나 새로 등록한 경우)
   const existingIds = session.records.map((r) => r.studentId);
-  const candidates = await prisma.student.findMany({
-    where: {
-      id: { notIn: existingIds.length ? existingIds : ["-"] },
-      status: { in: ["ENROLLED", "ON_LEAVE"] },
-    },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-    take: 100,
-  });
+  const [candidates, classGroups, lessons] = await Promise.all([
+    prisma.student.findMany({
+      where: {
+        id: { notIn: existingIds.length ? existingIds : ["-"] },
+        status: { in: ["ENROLLED", "ON_LEAVE"] },
+      },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+      take: 100,
+    }),
+    prisma.classGroup.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.lesson.findMany({
+      include: { curriculum: { select: { title: true } } },
+      orderBy: [{ curriculumId: "asc" }, { sortOrder: "asc" }],
+      take: 200,
+    }),
+  ]);
 
   const rows: RecordRow[] = session.records.map((r) => ({
     id: r.id,
@@ -110,6 +123,26 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
               <p className="mt-1 text-sm whitespace-pre-wrap">{session.content}</p>
             </div>
           )}
+
+          <div className="mt-4">
+            <SessionEditForm
+              classGroups={classGroups}
+              lessons={lessons.map((l) => ({
+                id: l.id,
+                label: `${l.curriculum.title} · ${l.week ? `${l.week}주차 ` : ""}${l.topic}`,
+              }))}
+              session={{
+                id: session.id,
+                date: toDateInput(session.date),
+                topic: session.topic,
+                content: session.content,
+                homework: session.homework,
+                note: session.note,
+                classGroupId: session.classGroupId,
+                lessonId: session.lessonId,
+              }}
+            />
+          </div>
         </Card>
 
         <Card padded={false}>

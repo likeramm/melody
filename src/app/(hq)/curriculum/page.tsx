@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { ExternalLink, Trash2 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { fmtDate } from "@/lib/dates";
@@ -127,13 +128,7 @@ export default async function CurriculumPage() {
 
                             <form action={deleteCurriculum}>
                               <input type="hidden" name="id" value={c.id} />
-                              <button
-                                type="submit"
-                                aria-label="커리큘럼 삭제"
-                                className="rounded p-1.5 text-slate-300 hover:bg-rose-50 hover:text-rose-600"
-                              >
-                                <Trash2 size={15} aria-hidden />
-                              </button>
+                              <ConfirmButton label="커리큘럼 삭제" />
                             </form>
                           </div>
                         </div>
@@ -219,13 +214,7 @@ export default async function CurriculumPage() {
                                     <td className="px-4 py-2.5">
                                       <form action={deleteLesson}>
                                         <input type="hidden" name="id" value={l.id} />
-                                        <button
-                                          type="submit"
-                                          aria-label="수업 삭제"
-                                          className="rounded p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-600"
-                                        >
-                                          <Trash2 size={14} aria-hidden />
-                                        </button>
+                                        <ConfirmButton label="수업 삭제" />
                                       </form>
                                     </td>
                                   </tr>

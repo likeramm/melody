@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Pencil, Plus, X } from "lucide-react";
 
 import {
   Field,
@@ -15,7 +15,7 @@ import {
 import { Card } from "@/components/ui";
 import { VENDOR_EVENT_TYPE_LABEL, VENDOR_EVENT_TYPE_ORDER } from "@/lib/labels";
 
-import { addVendorEvent, createVendor, type FormState } from "./actions";
+import { addVendorEvent, createVendor, updateVendor, type FormState } from "./actions";
 
 const EVENT_OPTIONS = optionsFrom(VENDOR_EVENT_TYPE_ORDER, VENDOR_EVENT_TYPE_LABEL);
 
@@ -168,6 +168,186 @@ export function NewVendorEventForm({
         <FormError message={state.error} />
         <div className="flex justify-end">
           <SubmitButton>기록</SubmitButton>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+export type VendorEditValues = {
+  id: string;
+  name: string;
+  field: string | null;
+  contactName: string | null;
+  phone: string | null;
+  email: string | null;
+  kakaoId: string | null;
+  firstContactAt: string;
+  contractAt: string;
+  workAt: string;
+  paidAt: string;
+  quoteAmount: number | null;
+  finalAmount: number | null;
+  workDescription: string | null;
+  revisionRequest: string | null;
+  resultUrl: string | null;
+  satisfaction: number | null;
+  wouldReuse: boolean | null;
+};
+
+/** 업체 정보 전체 수정. 계약·작업·결제일과 만족도까지 여기서 고칩니다. */
+export function VendorEditForm({ vendor }: { vendor: VendorEditValues }) {
+  const [open, setOpen] = useState(false);
+  const [state, formAction] = useActionState<FormState, FormData>(updateVendor, {});
+  if (state.ok && open) setOpen(false);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+      >
+        <Pencil size={14} aria-hidden />
+        정보 수정
+      </button>
+    );
+  }
+
+  return (
+    <Card className="mb-4 w-full">
+      <form action={formAction} className="space-y-3">
+        <input type="hidden" name="id" value={vendor.id} />
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold">업체 정보 수정</p>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="닫기"
+            className="rounded p-1 text-slate-400 hover:bg-slate-100"
+          >
+            <X size={16} aria-hidden />
+          </button>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="업체명" htmlFor="ve-name" required>
+            <Input id="ve-name" name="name" required defaultValue={vendor.name} maxLength={80} />
+          </Field>
+          <Field label="분야" htmlFor="ve-field">
+            <Input id="ve-field" name="field" defaultValue={vendor.field ?? ""} />
+          </Field>
+          <Field label="담당자" htmlFor="ve-contact">
+            <Input id="ve-contact" name="contactName" defaultValue={vendor.contactName ?? ""} />
+          </Field>
+          <Field label="카카오톡" htmlFor="ve-kakao">
+            <Input id="ve-kakao" name="kakaoId" defaultValue={vendor.kakaoId ?? ""} />
+          </Field>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="전화" htmlFor="ve-phone">
+            <Input id="ve-phone" name="phone" defaultValue={vendor.phone ?? ""} inputMode="tel" />
+          </Field>
+          <Field label="이메일" htmlFor="ve-email">
+            <Input id="ve-email" name="email" type="email" defaultValue={vendor.email ?? ""} />
+          </Field>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="최초 연락일" htmlFor="ve-first">
+            <Input
+              id="ve-first"
+              name="firstContactAt"
+              type="date"
+              defaultValue={vendor.firstContactAt}
+            />
+          </Field>
+          <Field label="계약일" htmlFor="ve-contract">
+            <Input id="ve-contract" name="contractAt" type="date" defaultValue={vendor.contractAt} />
+          </Field>
+          <Field label="작업일" htmlFor="ve-work">
+            <Input id="ve-work" name="workAt" type="date" defaultValue={vendor.workAt} />
+          </Field>
+          <Field label="결제일" htmlFor="ve-paid">
+            <Input id="ve-paid" name="paidAt" type="date" defaultValue={vendor.paidAt} />
+          </Field>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="견적" htmlFor="ve-quote">
+            <Input
+              id="ve-quote"
+              name="quoteAmount"
+              inputMode="numeric"
+              defaultValue={vendor.quoteAmount ?? ""}
+            />
+          </Field>
+          <Field label="최종 금액" htmlFor="ve-final">
+            <Input
+              id="ve-final"
+              name="finalAmount"
+              inputMode="numeric"
+              defaultValue={vendor.finalAmount ?? ""}
+            />
+          </Field>
+          <Field label="만족도 (1~5)" htmlFor="ve-sat">
+            <Input
+              id="ve-sat"
+              name="satisfaction"
+              type="number"
+              min={1}
+              max={5}
+              defaultValue={vendor.satisfaction ?? ""}
+            />
+          </Field>
+          <Field label="다시 쓸 업체" htmlFor="ve-reuse">
+            <Select
+              id="ve-reuse"
+              name="wouldReuse"
+              defaultValue={vendor.wouldReuse === null ? "" : vendor.wouldReuse ? "yes" : "no"}
+              placeholder="미정"
+              options={[
+                { value: "yes", label: "예" },
+                { value: "no", label: "아니오" },
+              ]}
+            />
+          </Field>
+        </div>
+
+        <Field label="결과물 링크" htmlFor="ve-result">
+          <Input id="ve-result" name="resultUrl" type="url" defaultValue={vendor.resultUrl ?? ""} />
+        </Field>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="작업 내용" htmlFor="ve-desc">
+            <Textarea
+              id="ve-desc"
+              name="workDescription"
+              rows={3}
+              defaultValue={vendor.workDescription ?? ""}
+            />
+          </Field>
+          <Field label="수정 요청" htmlFor="ve-rev">
+            <Textarea
+              id="ve-rev"
+              name="revisionRequest"
+              rows={3}
+              defaultValue={vendor.revisionRequest ?? ""}
+            />
+          </Field>
+        </div>
+
+        <FormError message={state.error} />
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            취소
+          </button>
+          <SubmitButton>저장</SubmitButton>
         </div>
       </form>
     </Card>

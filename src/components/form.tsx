@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { Check } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/components/ui";
@@ -103,4 +105,31 @@ export function optionsFrom<T extends string>(
   labels: Record<T, string>,
 ): { value: string; label: string }[] {
   return order.map((key) => ({ value: key, label: labels[key] }));
+}
+
+/**
+ * 저장 직후 잠깐 뜨는 확인 표시.
+ * 폼이 접히면서 아무 반응이 없으면 저장이 됐는지 알 수 없어서 넣었습니다.
+ */
+export function SavedFlash({ show }: { show: boolean }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (!show) return;
+    setVisible(true);
+    const t = setTimeout(() => setVisible(false), 2500);
+    return () => clearTimeout(t);
+  }, [show]);
+
+  if (!visible) return null;
+
+  return (
+    <span
+      role="status"
+      className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700"
+    >
+      <Check size={12} aria-hidden />
+      저장했습니다
+    </span>
+  );
 }

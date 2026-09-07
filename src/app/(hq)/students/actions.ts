@@ -147,6 +147,22 @@ export async function changeStudentStatus(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+/** 학생 페이지에서 메모만 빠르게 덧붙입니다. */
+export async function appendStudentMemo(formData: FormData) {
+  await requireUser();
+  const id = String(formData.get("id") ?? "");
+  const text = String(formData.get("memo") ?? "").trim();
+  if (!id || !text) return;
+
+  const student = await prisma.student.findUnique({ where: { id }, select: { memo: true } });
+  const stamp = new Date().toLocaleDateString("ko-KR");
+  const next = student?.memo ? `${student.memo}
+${stamp} ${text}` : `${stamp} ${text}`;
+
+  await prisma.student.update({ where: { id }, data: { memo: next } });
+  revalidatePath(`/students/${id}`);
+}
+
 export async function deleteStudent(formData: FormData) {
   await requireUser();
   const id = String(formData.get("id") ?? "");
