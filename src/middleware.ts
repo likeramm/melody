@@ -3,8 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
 
 // 로그인 없이 접근 가능한 경로.
-// 시드 API 는 자체 토큰으로 스스로를 보호하므로 미들웨어는 통과시킵니다.
-const PUBLIC_PATHS = ["/login", "/api/admin/seed"];
+const PUBLIC_PATHS = ["/login"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
