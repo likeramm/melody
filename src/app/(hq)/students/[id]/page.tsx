@@ -59,8 +59,11 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
       contactLogs: { orderBy: { contactedAt: "desc" }, take: 20 },
       payments: { orderBy: [{ paidAt: "desc" }, { dueAt: "desc" }], take: 20 },
       // 수업 기록은 한 번 입력하면 여기에 그대로 누적됩니다.
+      // 학기가 길어져도 화면이 무거워지지 않도록 최근 60회까지만 가져옵니다.
+      // 최신순으로 받아 아래에서 시간순으로 되돌립니다.
       sessionRecords: {
-        orderBy: { session: { date: "asc" } },
+        orderBy: { session: { date: "desc" } },
+        take: 60,
         include: {
           session: {
             select: { id: true, date: true, topic: true, content: true, homework: true },
@@ -78,7 +81,8 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
 
   if (!student) notFound();
 
-  const records = student.sessionRecords;
+  // 조회는 최신순으로 했으므로 그래프와 표를 위해 시간순으로 되돌립니다.
+  const records = [...student.sessionRecords].reverse();
   const attended = records.filter((r) => r.attendance !== "ABSENT").length;
   const attendanceRate = records.length ? Math.round((attended / records.length) * 100) : null;
 
