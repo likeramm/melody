@@ -447,7 +447,7 @@ export default async function DashboardPage() {
                   <div className="flex w-24 shrink-0 items-center gap-2">
                     <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
                       <div
-                        className="h-full rounded-full bg-brand-500"
+                        className="h-full rounded-full bg-gold-500"
                         style={{ width: `${m.progress}%` }}
                       />
                     </div>

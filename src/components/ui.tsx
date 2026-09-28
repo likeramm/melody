@@ -16,7 +16,8 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
+        // 월넛 톤 그림자 — 아이보리 바탕 위에서 종이처럼 살짝 떠 보이게
+        "rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(61,43,31,0.05),0_1px_1px_rgba(61,43,31,0.03)]",
         padded && "p-4 sm:p-5",
         className,
       )}
@@ -38,8 +39,10 @@ export function SectionTitle({
   return (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-        {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
+        <h2 className="font-serif text-[15.5px] font-semibold tracking-tight text-slate-800">
+          {title}
+        </h2>
+        {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
       </div>
       {action}
     </div>
@@ -56,21 +59,28 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <header className="mb-7 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h1>
-        {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+        <h1 className="font-serif text-[22px] font-semibold tracking-tight text-brand-800 sm:text-[26px]">
+          {title}
+        </h1>
+        {/* 로고 워드마크 아래의 골드 장식을 페이지 제목에도 씁니다. */}
+        <div aria-hidden className="ornament-left mt-2">
+          <span />
+        </div>
+        {description && <p className="mt-2 text-sm text-muted">{description}</p>}
       </div>
       {action}
     </header>
   );
 }
 
-type Tone = "neutral" | "brand" | "success" | "warning" | "danger" | "info";
+type Tone = "neutral" | "brand" | "gold" | "success" | "warning" | "danger" | "info";
 
 const TONE_CLASS: Record<Tone, string> = {
   neutral: "bg-slate-100 text-slate-700 ring-slate-200",
   brand: "bg-brand-50 text-brand-700 ring-brand-200",
+  gold: "bg-gold-50 text-gold-700 ring-gold-200",
   success: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   warning: "bg-amber-50 text-amber-800 ring-amber-200",
   danger: "bg-rose-50 text-rose-700 ring-rose-200",
@@ -111,10 +121,17 @@ export function StatCard({
   tone?: Tone;
 }) {
   return (
-    <Card className="min-w-0">
-      <p className="truncate text-sm text-muted">{label}</p>
-      <p className="mt-1.5 flex items-baseline gap-2">
-        <span className="text-2xl font-semibold tabular-nums sm:text-3xl">{value}</span>
+    <Card className="relative min-w-0 overflow-hidden">
+      {/* 카드 윗변의 가는 골드 선 — 요약 숫자 카드임을 표시합니다 */}
+      <span
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-gold-400/0 via-gold-400/70 to-gold-400/0"
+      />
+      <p className="truncate text-[13px] font-medium text-muted">{label}</p>
+      <p className="mt-1.5 flex flex-wrap items-baseline gap-2">
+        <span className="font-serif text-2xl font-semibold text-brand-800 tabular-nums sm:text-[28px]">
+          {value}
+        </span>
         {hint && <Badge tone={tone}>{hint}</Badge>}
       </p>
     </Card>
@@ -123,9 +140,9 @@ export function StatCard({
 
 export function EmptyState({ message, hint }: { message: string; hint?: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-border px-4 py-10 text-center">
+    <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/50 px-4 py-9 text-center">
       <p className="text-sm font-medium text-muted">{message}</p>
-      {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
     </div>
   );
 }
@@ -138,8 +155,8 @@ export function ComingSoon({ items }: { items: string[] }) {
       <ul className="mt-3 space-y-1.5 text-sm text-muted">
         {items.map((item) => (
           <li key={item} className="flex gap-2">
-            <span aria-hidden className="text-brand-400">
-              •
+            <span aria-hidden className="text-gold-500">
+              ◆
             </span>
             <span>{item}</span>
           </li>

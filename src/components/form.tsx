@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/components/ui";
 
 const CONTROL =
-  "w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100 disabled:bg-slate-50";
+  "w-full rounded-lg border border-border bg-[#fffefb] px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-gold-500 focus:ring-2 focus:ring-gold-200 disabled:bg-slate-50";
 
 export function Field({
   label,
@@ -78,7 +78,8 @@ export function SubmitButton({
   const base =
     "rounded-lg px-4 py-2 text-sm font-semibold transition disabled:opacity-60 disabled:cursor-not-allowed";
   const styles = {
-    primary: "bg-brand-600 text-white hover:bg-brand-700",
+    // 로고 방패색 그대로. 누르면 워드마크 색으로 한 단계 짙어집니다.
+    primary: "bg-brand-700 text-[#fbf6ee] shadow-sm hover:bg-brand-800",
     ghost: "border border-border bg-card text-slate-700 hover:bg-slate-50",
     danger: "bg-rose-600 text-white hover:bg-rose-700",
   } as const;

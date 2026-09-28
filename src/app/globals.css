@@ -1,28 +1,86 @@
 @import "tailwindcss";
 
+/*
+ * ELOQUENCE 브랜드 토큰
+ *
+ * 색은 로고(.ai)와 학원 홈페이지(eloquence-edu.com)에서 직접 뽑았습니다.
+ *   방패 버건디   #441F25   로고 방패 바탕
+ *   워드마크      #3C1617   로고의 ELOQUENCE 글자
+ *   골드          #D0AC7C   나이트·왕관·월계수·부제
+ *   아이보리      #FAF7F2   홈페이지 바탕
+ *   월넛          #3D2B1F   홈페이지 본문 글씨
+ *
+ * 화면 곳곳의 slate/rose/emerald/sky 클래스는 그대로 두고,
+ * 그 색 단계 자체를 브랜드에 맞게 다시 정의했습니다.
+ * 컴포넌트를 하나하나 고치지 않고도 앱 전체의 톤이 바뀝니다.
+ */
 @theme {
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
     "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+  --font-serif: "Noto Serif KR", "Nanum Myeongjo", "AppleMyungjo", Georgia, serif;
+  --font-display: "Cormorant Garamond", "Noto Serif KR", Georgia, serif;
 
-  /* MELODY 브랜드 팔레트 */
-  --color-brand-50: oklch(0.97 0.02 275);
-  --color-brand-100: oklch(0.94 0.04 275);
-  --color-brand-200: oklch(0.88 0.07 275);
-  --color-brand-300: oklch(0.79 0.11 275);
-  --color-brand-400: oklch(0.69 0.15 275);
-  --color-brand-500: oklch(0.6 0.18 275);
-  --color-brand-600: oklch(0.52 0.19 275);
-  --color-brand-700: oklch(0.44 0.17 275);
-  --color-brand-800: oklch(0.36 0.13 275);
-  --color-brand-900: oklch(0.29 0.09 275);
+  /* 버건디 — 700 이 로고 방패, 800 이 로고 워드마크 */
+  --color-brand-50: #f9f2f3;
+  --color-brand-100: #f2e3e5;
+  --color-brand-200: #e3c4c9;
+  --color-brand-300: #cb9aa3;
+  --color-brand-400: #a56672;
+  --color-brand-500: #7e3f4c;
+  --color-brand-600: #5e2733;
+  --color-brand-700: #441f25;
+  --color-brand-800: #3c1617;
+  --color-brand-900: #2a0f13;
+
+  /* 골드 — 400 이 로고 원색. 밝은 바탕 위 작은 글씨는 700 이상을 씁니다 */
+  --color-gold-50: #fbf7f0;
+  --color-gold-100: #f6eddd;
+  --color-gold-200: #ecdcc0;
+  --color-gold-300: #dfc69e;
+  --color-gold-400: #d0ac7c;
+  --color-gold-500: #b89260;
+  --color-gold-600: #967447;
+  --color-gold-700: #735835;
+  --color-gold-800: #524027;
+
+  /* 중성색 — 차가운 회색 대신 월넛 계열. 600·800 이 홈페이지 글씨색 */
+  --color-slate-50: #f8f4ef;
+  --color-slate-100: #f0e9e0;
+  --color-slate-200: #e3d9cd;
+  --color-slate-300: #ccbdac;
+  --color-slate-400: #a89582;
+  --color-slate-500: #877461;
+  --color-slate-600: #6b5b4e;
+  --color-slate-700: #54463b;
+  --color-slate-800: #3d2b1f;
+  --color-slate-900: #2b1e15;
+
+  /* 경고 — 브랜드 버건디와 헷갈리지 않도록 주황기 도는 벽돌색 */
+  --color-rose-50: #fcf2ee;
+  --color-rose-100: #f8e1d9;
+  --color-rose-200: #f0c6b8;
+  --color-rose-300: #e39c85;
+  --color-rose-600: #b83a26;
+  --color-rose-700: #9a2e1e;
+
+  /* 완료 — 골드와 어울리는 세이지 그린 */
+  --color-emerald-50: #eef4ec;
+  --color-emerald-100: #dde9d9;
+  --color-emerald-200: #c4d9be;
+  --color-emerald-700: #3d6636;
+
+  /* 진행 — 오래된 양장본 천 같은 차분한 청회색 */
+  --color-sky-50: #eef2f6;
+  --color-sky-200: #c7d3df;
+  --color-sky-700: #3b5670;
 }
 
 :root {
-  --background: oklch(0.985 0.002 275);
-  --foreground: oklch(0.22 0.02 275);
-  --card: oklch(1 0 0);
-  --border: oklch(0.92 0.005 275);
-  --muted: oklch(0.55 0.015 275);
+  --background: #faf7f2;
+  --foreground: #3d2b1f;
+  --card: #fffdf9;
+  --border: #e6ddd0;
+  --muted: #6b5b4e;
 }
 
 @theme inline {
@@ -60,7 +118,7 @@ body {
 
 /* 키보드로 이동할 때 어디에 있는지 항상 보이게 합니다. */
 :where(a, button, input, select, textarea):focus-visible {
-  outline: 2px solid var(--color-brand-500);
+  outline: 2px solid var(--color-gold-500);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -74,4 +132,64 @@ body {
 form:has(button[type="submit"]:disabled) {
   opacity: 0.7;
   pointer-events: none;
+}
+
+/*
+ * 로고의 워드마크와 부제 사이에 있는 "선 ─ ◆ ─ 선" 장식.
+ * 로그인 화면과 페이지 제목 아래에만 절제해서 씁니다.
+ */
+.ornament {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-gold-500);
+}
+.ornament::before,
+.ornament::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+}
+.ornament::before {
+  background: linear-gradient(to right, transparent, currentColor);
+}
+.ornament::after {
+  background: linear-gradient(to left, transparent, currentColor);
+}
+.ornament > span {
+  width: 6px;
+  height: 6px;
+  transform: rotate(45deg);
+  background: currentColor;
+  flex: none;
+}
+
+/* 페이지 제목 아래에 쓰는, 왼쪽 정렬 버전 */
+.ornament-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-gold-500);
+}
+.ornament-left > span {
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  background: currentColor;
+  flex: none;
+}
+.ornament-left::after {
+  content: "";
+  height: 1px;
+  width: 56px;
+  background: linear-gradient(to right, currentColor, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }
