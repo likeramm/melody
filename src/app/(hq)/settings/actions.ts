@@ -113,3 +113,73 @@ export async function changePassword(
   revalidatePath("/settings");
   return { ok: "비밀번호를 바꿨습니다. 다른 기기에 로그인돼 있던 곳은 모두 로그아웃됩니다." };
 }
+
+// ── 계정 관리 ────────────────────────────────────────────────
+
+const newAccountSchema = z
+  .object({
+    name: z.string().trim().min(1, "이름을 입력하세요.").max(40),
+    email: z.string().trim().toLowerCase().email("이메일 형식이 올바르지 않습니다."),
+    password: z
+      .string()
+      .min(8, "비밀번호는 8자 이상이어야 합니다.")
+      .max(64, "비밀번호는 64자까지 쓸 수 있습니다."),
+    confirmPassword: z.string(),
+    currentPassword: z.string().min(1, "내 현재 비밀번호를 입력하세요."),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "비밀번호와 확인이 서로 다릅니다.",
+  });
+
+/**
+ * 로그인할 수 있는 계정을 하나 더 만듭니다.
+ * 누군가 자리를 비운 사이 계정이 늘어나지 않도록, 만드는 사람의 비밀번호로 한 번 더 확인합니다.
+ */
+export async function createAccount(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const user = await requireUser();
+  if (user.role !== "ADMIN") return { error: "계정은 원장 계정에서만 만들 수 있습니다." };
+  const parsed = newAccountSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+    currentPassword: formData.get("currentPassword"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+
+  const { name, email, password, currentPassword } = parsed.data;
+  if (!(await verifyPassword(currentPassword, user.passwordHash))) {
+    return { error: "내 현재 비밀번호가 맞지 않습니다." };
+  }
+
+  const taken = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  if (taken) return { error: "이미 다른 계정에서 쓰고 있는 이메일입니다." };
+
+  // 새 계정은 담당자(STAFF)로 만듭니다. 학원 데이터는 똑같이 쓰지만 계정 관리는 못 해,
+  // 원장 계정이 잠기는 일이 없습니다.
+  // passwordChangedAt 을 비워 두어, 새 계정 주인이 처음 로그인하면 비밀번호를 바꾸라는 안내가 보이게 합니다.
+  await prisma.user.create({
+    data: { name, email, role: "STAFF", passwordHash: await hashPassword(password) },
+  });
+
+  revalidatePath("/settings");
+  return { ok: `${name} 계정을 만들었습니다. ${email} 로 로그인할 수 있습니다.` };
+}
+
+/**
+ * 계정 사용을 멈추거나 다시 켭니다. 지우지 않으므로 그 사람이 남긴 기록은 그대로입니다.
+ * 멈추는 즉시 그 계정의 모든 로그인이 끊깁니다.
+ */
+export async function setAccountActive(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== "ADMIN") return;
+  const id = String(formData.get("id") ?? "");
+  const active = formData.get("active") === "true";
+  if (!id || id === user.id) return; // 자기 계정은 여기서 끌 수 없습니다.
+
+  await prisma.user.update({ where: { id }, data: { isActive: active } });
+  revalidatePath("/settings");
+}

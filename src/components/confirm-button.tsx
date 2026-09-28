@@ -19,6 +19,7 @@ function Pending({ children }: { children: React.ReactNode }) {
 export function ConfirmButton({
   label = "삭제",
   confirmLabel = "정말 삭제할까요?",
+  actionLabel = "삭제",
   icon = true,
   size = 15,
   className,
@@ -26,6 +27,8 @@ export function ConfirmButton({
 }: {
   label?: string;
   confirmLabel?: string;
+  /** 확인 단계의 실행 버튼 글자. 삭제가 아닌 동작(예: 사용 중지)에 씁니다. */
+  actionLabel?: string;
   /** false 면 휴지통 아이콘 대신 글자가 적힌 버튼으로 보여줍니다. */
   icon?: boolean;
   size?: number;
@@ -57,7 +60,8 @@ export function ConfirmButton({
           <Trash2 size={size} aria-hidden />
         ) : (
           <>
-            <Trash2 size={14} aria-hidden />
+            {/* 삭제가 아닌 동작에는 휴지통을 붙이지 않습니다 */}
+            {actionLabel === "삭제" && <Trash2 size={14} aria-hidden />}
             {label}
           </>
         )}
@@ -73,7 +77,7 @@ export function ConfirmButton({
         formAction={formAction}
         className="rounded bg-rose-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-rose-700"
       >
-        <Pending>삭제</Pending>
+        <Pending>{actionLabel}</Pending>
       </button>
       <button
         type="button"

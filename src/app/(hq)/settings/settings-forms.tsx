@@ -1,11 +1,11 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, UserPlus } from "lucide-react";
 
-import { Field, FormError, Input, SubmitButton } from "@/components/form";
+import { Field, FormError, Input, SubmitButton, useCloseOnSuccess } from "@/components/form";
 
-import { changeEmail, changePassword, type SettingsState } from "./actions";
+import { changeEmail, changePassword, createAccount, type SettingsState } from "./actions";
 
 /** 입력한 비밀번호를 눈으로 확인할 수 있는 칸. 새 비밀번호를 정할 때 오타를 막아줍니다. */
 function PasswordInput({
@@ -101,6 +101,70 @@ export function PasswordForm() {
 
       <div className="flex justify-end">
         <SubmitButton pendingLabel="바꾸는 중…">비밀번호 변경</SubmitButton>
+      </div>
+    </form>
+  );
+}
+
+/** 로그인할 수 있는 계정을 하나 더 만듭니다. 평소에는 접어 둡니다. */
+export function NewAccountForm() {
+  const [open, setOpen] = useState(false);
+  const [state, formAction] = useActionState<SettingsState, FormData>(createAccount, {});
+  // 만들었으면 접고 결과만 보여 줍니다.
+  useCloseOnSuccess(state, () => setOpen(false));
+
+  if (!open) {
+    return (
+      <div className="space-y-3">
+        <Success message={state.ok} />
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          <UserPlus size={15} aria-hidden />
+          계정 추가
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form action={formAction} className="space-y-4 rounded-lg border border-border p-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="이름" htmlFor="acc-name" required>
+          <Input id="acc-name" name="name" required maxLength={40} autoFocus />
+        </Field>
+        <Field label="로그인 이메일" htmlFor="acc-email" required>
+          <Input id="acc-email" name="email" type="email" required autoComplete="off" />
+        </Field>
+        <Field label="비밀번호" htmlFor="acc-password" required hint="8자 이상">
+          <PasswordInput id="acc-password" name="password" autoComplete="new-password" />
+        </Field>
+        <Field label="비밀번호 확인" htmlFor="acc-confirm" required hint="한 번 더 입력하세요">
+          <PasswordInput id="acc-confirm" name="confirmPassword" autoComplete="new-password" />
+        </Field>
+      </div>
+      <Field
+        label="내 현재 비밀번호"
+        htmlFor="acc-current"
+        required
+        hint="계정을 늘리는 일이라 본인 확인을 한 번 더 합니다."
+      >
+        <PasswordInput id="acc-current" name="currentPassword" autoComplete="current-password" />
+      </Field>
+
+      <FormError message={state.error} />
+
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          취소
+        </button>
+        <SubmitButton pendingLabel="만드는 중…">계정 만들기</SubmitButton>
       </div>
     </form>
   );
