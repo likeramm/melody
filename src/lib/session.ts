@@ -17,6 +17,9 @@ export type SessionPayload = {
   role: Role;
 };
 
+/** 검증을 거친 세션. 발급 시각(초)을 함께 돌려줘 비밀번호 변경 전 로그인을 걸러냅니다. */
+export type VerifiedSession = SessionPayload & { issuedAt: number };
+
 function secretKey() {
   const secret = process.env.AUTH_SECRET;
   if (!secret) {
@@ -34,7 +37,7 @@ export async function signSession(payload: SessionPayload): Promise<string> {
     .sign(secretKey());
 }
 
-export async function verifySession(token: string | undefined): Promise<SessionPayload | null> {
+export async function verifySession(token: string | undefined): Promise<VerifiedSession | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secretKey());
@@ -43,6 +46,7 @@ export async function verifySession(token: string | undefined): Promise<SessionP
       email: payload.email as string,
       name: payload.name as string,
       role: payload.role as Role,
+      issuedAt: typeof payload.iat === "number" ? payload.iat : 0,
     };
   } catch {
     // 만료·위조된 토큰은 비로그인과 동일하게 취급합니다.

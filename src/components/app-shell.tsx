@@ -9,6 +9,7 @@ import {
   BookOpen,
   CalendarRange,
   ClipboardList,
+  KeyRound,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -163,10 +164,15 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 function UserBlock({
   user,
   logoutAction,
+  onNavigate,
 }: {
   user: { name: string };
   logoutAction: () => Promise<void>;
+  onNavigate?: () => void;
 }) {
+  const pathname = usePathname();
+  const onSettings = pathname === "/settings";
+
   return (
     <div className="border-t border-white/10 pt-3">
       <div className="mb-1 flex items-center gap-2.5 px-3">
@@ -178,6 +184,20 @@ function UserBlock({
         </span>
         <span className="truncate text-sm font-medium text-[#f6efe8]">{user.name}</span>
       </div>
+      <Link
+        href="/settings"
+        onClick={onNavigate}
+        aria-current={onSettings ? "page" : undefined}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-md px-3 py-2 text-[13px] transition",
+          onSettings
+            ? "bg-white/[0.07] text-gold-300"
+            : "text-[#eadfd6]/65 hover:bg-white/[0.04] hover:text-[#f6efe8]",
+        )}
+      >
+        <KeyRound size={15} aria-hidden strokeWidth={1.8} />
+        계정 설정
+      </Link>
       <form action={logoutAction}>
         <button
           type="submit"
@@ -269,7 +289,7 @@ export function AppShell({
             <div className="flex-1 overflow-y-auto">
               <NavLinks onNavigate={() => setOpen(false)} />
             </div>
-            <UserBlock user={user} logoutAction={logoutAction} />
+            <UserBlock user={user} logoutAction={logoutAction} onNavigate={() => setOpen(false)} />
           </div>
         </div>
       )}

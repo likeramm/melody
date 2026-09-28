@@ -27,16 +27,19 @@ enum Role {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  name         String
-  phone        String?
-  role         Role      @default(ADMIN)
-  isActive     Boolean   @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String
+  name              String
+  phone             String?
+  role              Role      @default(ADMIN)
+  isActive          Boolean   @default(true)
+  lastLoginAt       DateTime?
+  // 비밀번호를 바꾼 시각. 이보다 먼저 발급된 로그인은 모두 무효로 봅니다.
+  // 다른 기기에 남아 있던 로그인을 끊기 위한 값입니다.
+  passwordChangedAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   tasks         Task[]
   milestones    Milestone[]

@@ -3,7 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
 
 // 로그인 없이 접근 가능한 경로.
-const PUBLIC_PATHS = ["/login"];
+// /auth/expired 는 무효 쿠키를 지우는 곳이라 반드시 통과시켜야 합니다.
+// 막으면 ?next=/auth/expired 가 붙어, 다시 로그인하자마자 또 로그아웃됩니다.
+const PUBLIC_PATHS = ["/login", "/auth/expired"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

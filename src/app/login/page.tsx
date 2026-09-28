@@ -8,9 +8,9 @@ export const metadata: Metadata = { title: "로그인" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; expired?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, expired } = await searchParams;
 
   return (
     <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-background px-4 py-12">
@@ -40,6 +40,11 @@ export default async function LoginPage({
           <p className="mb-5 text-center font-serif text-[15px] font-semibold text-brand-800">
             운영 시스템
           </p>
+          {expired && (
+            <p className="mb-4 rounded-lg bg-gold-50 px-3 py-2 text-[13px] text-gold-800">
+              로그인이 만료됐습니다. 다른 곳에서 비밀번호가 바뀌었다면 새 비밀번호로 로그인해 주세요.
+            </p>
+          )}
           <LoginForm next={next} />
         </div>
 
