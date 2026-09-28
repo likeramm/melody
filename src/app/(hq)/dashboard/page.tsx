@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle, StatCard } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { fmtDate, monthRange, todayRange, weekRange } from "@/lib/dates";
+import { fmtDate, monthRange, todayDateOnly, todayRange, weekRange } from "@/lib/dates";
 import {
   ATTENDANCE_STATUS_LABEL,
   CONTACT_TYPE_LABEL,
@@ -89,9 +89,9 @@ export default async function DashboardPage() {
       where: { takenAt: today },
       include: { student: { select: { id: true, name: true, grade: true } } },
     }),
-    // 오늘 수업
+    // 오늘 수업 — 수업일은 날짜만 저장하는 칸이라 한국 날짜 하나로 비교합니다.
     prisma.classSession.findMany({
-      where: { date: today },
+      where: { date: todayDateOnly() },
       include: {
         classGroup: { select: { name: true, schedule: true } },
         _count: { select: { records: true } },

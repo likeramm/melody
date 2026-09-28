@@ -7,7 +7,14 @@ import { Badge, Card, EmptyState, PageHeader, SectionTitle, StatCard } from "@/c
 import { ConfirmButton } from "@/components/confirm-button";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { fmtDate, monthRange } from "@/lib/dates";
+import {
+  fmtDate,
+  fmtMonthKey,
+  monthFromKey,
+  monthRange,
+  shiftMonthKey,
+  yearMonthOf,
+} from "@/lib/dates";
 import {
   EXPENSE_CATEGORY_LABEL,
   EXPENSE_CATEGORY_ORDER,
@@ -30,17 +37,14 @@ export default async function FinancePage({
   await requireUser();
   const { month: monthParam } = await searchParams;
 
-  // ?month=2026-09 형태. 없으면 이번 달.
-  const base = monthParam && /^\d{4}-\d{2}$/.test(monthParam)
-    ? new Date(`${monthParam}-01T00:00:00`)
-    : new Date();
-  const range = monthRange(base);
-  const label = `${base.getFullYear()}년 ${base.getMonth() + 1}월`;
-
-  const prev = new Date(base.getFullYear(), base.getMonth() - 1, 1);
-  const next = new Date(base.getFullYear(), base.getMonth() + 1, 1);
-  const key = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  // ?month=2026-09 형태. 없으면 한국 시간 기준 이번 달.
+  // 월 계산은 문자열 키로만 하고, 서버 시간대에 따라 바뀌는 getMonth() 등은 쓰지 않습니다.
+  const monthKey =
+    monthParam && /^\d{4}-(0[1-9]|1[0-2])$/.test(monthParam) ? monthParam : yearMonthOf();
+  const range = monthRange(monthFromKey(monthKey));
+  const label = fmtMonthKey(monthKey);
+  const prevKey = shiftMonthKey(monthKey, -1);
+  const nextKey = shiftMonthKey(monthKey, 1);
 
   const [payments, expenses, byCategory, students, vendors, projects, unpaid] = await Promise.all([
     prisma.payment.findMany({
@@ -100,14 +104,14 @@ export default async function FinancePage({
       {/* 월 이동 */}
       <div className="mb-4 flex items-center gap-2">
         <Link
-          href={`/finance?month=${key(prev)}` as Route}
+          href={`/finance?month=${prevKey}` as Route}
           className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
         >
           ← 이전 달
         </Link>
         <span className="px-2 text-sm font-semibold">{label}</span>
         <Link
-          href={`/finance?month=${key(next)}` as Route}
+          href={`/finance?month=${nextKey}` as Route}
           className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
         >
           다음 달 →
