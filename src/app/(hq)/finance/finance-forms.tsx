@@ -3,7 +3,8 @@
 import { useActionState, useState } from "react";
 import { Plus, X } from "lucide-react";
 
-import { Field, FormError, Input, Select, SubmitButton, optionsFrom } from "@/components/form";
+import { Field, FormError, Input, Select, SubmitButton, optionsFrom, useCloseOnSuccess } from "@/components/form";
+import { toDateInput } from "@/lib/dates";
 import { Card } from "@/components/ui";
 import {
   EXPENSE_CATEGORY_LABEL,
@@ -65,7 +66,7 @@ function Toggle({
 export function NewPaymentForm({ students }: { students: { id: string; name: string }[] }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(createPayment, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   return (
     <Toggle open={open} setOpen={setOpen} label="수입 추가" title="수입">
@@ -120,14 +121,14 @@ export function NewExpenseForm({
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(createExpense, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   return (
     <Toggle open={open} setOpen={setOpen} label="지출 추가" title="지출">
       <form action={formAction} className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="날짜" htmlFor="exp-date" required>
-            <Input id="exp-date" name="spentAt" type="date" required />
+            <Input id="exp-date" name="spentAt" type="date" required defaultValue={toDateInput(new Date())} />
           </Field>
           <Field label="항목" htmlFor="exp-item" required>
             <Input id="exp-item" name="item" required maxLength={120} />

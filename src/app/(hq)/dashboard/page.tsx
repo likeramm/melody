@@ -148,24 +148,28 @@ export default async function DashboardPage() {
         <StatCard
           label="오늘의 P0"
           value={p0Today.length}
+          href={"/tasks?view=today" as Route}
           tone="danger"
           hint={p0Today.length > 0 ? "최우선" : undefined}
         />
         <StatCard
           label="기한 초과"
           value={overdue.length}
+          href={"/tasks?view=overdue" as Route}
           tone="danger"
           hint={overdue.length > 0 ? "지연" : undefined}
         />
         <StatCard
           label="오늘 Follow-up"
           value={followUps.length}
+          href="/followups"
           tone="warning"
           hint={followUps.length > 0 ? "연락 필요" : undefined}
         />
         <StatCard
           label="미납"
           value={unpaid.length}
+          href="/finance"
           tone="danger"
           hint={unpaidTotal > 0 ? fmtWon(unpaidTotal) : undefined}
         />
@@ -178,7 +182,10 @@ export default async function DashboardPage() {
             title="오늘의 P0"
             description="가장 먼저 해야 할 일입니다."
             action={
-              <Link href="/tasks" className="text-sm font-medium text-brand-600 hover:underline">
+              <Link
+                href={"/tasks?view=today" as Route}
+                className="text-sm font-medium text-brand-600 hover:underline"
+              >
                 할 일 전체
               </Link>
             }
@@ -251,7 +258,17 @@ export default async function DashboardPage() {
 
         {/* 이번 주 P1 */}
         <Card>
-          <SectionTitle title="이번 주 P1" />
+          <SectionTitle
+            title="이번 주 P1"
+            action={
+              <Link
+                href={"/tasks?view=week" as Route}
+                className="text-sm font-medium text-brand-600 hover:underline"
+              >
+                전체
+              </Link>
+            }
+          />
           {p1Week.length === 0 ? (
             <EmptyState message="이번 주 P1 업무가 없습니다." />
           ) : (
@@ -268,7 +285,17 @@ export default async function DashboardPage() {
 
         {/* 기한 초과 */}
         <Card>
-          <SectionTitle title="기한 초과" />
+          <SectionTitle
+            title="기한 초과"
+            action={
+              <Link
+                href={"/tasks?view=overdue" as Route}
+                className="text-sm font-medium text-brand-600 hover:underline"
+              >
+                전체
+              </Link>
+            }
+          />
           {overdue.length === 0 ? (
             <EmptyState message="지연된 업무가 없습니다." />
           ) : (
@@ -333,14 +360,20 @@ export default async function DashboardPage() {
           ) : (
             <ul className="space-y-2">
               {todaySessions.map((s) => (
-                <li key={s.id} className="rounded-lg bg-slate-50 px-3 py-2">
-                  <p className="truncate text-sm font-medium">
-                    {s.classGroup?.name ?? "반 미지정"}
-                    {s.topic && <span className="font-normal text-muted"> · {s.topic}</span>}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted">
-                    {s.classGroup?.schedule ?? "시간 미정"} · 기록 {s._count.records}명
-                  </p>
+                <li key={s.id}>
+                  {/* 누르면 바로 출결 입력 표로 갑니다 */}
+                  <Link
+                    href={`/sessions/${s.id}` as Route}
+                    className="block rounded-lg bg-slate-50 px-3 py-2 transition hover:bg-slate-100"
+                  >
+                    <p className="truncate text-sm font-medium">
+                      {s.classGroup?.name ?? "반 미지정"}
+                      {s.topic && <span className="font-normal text-muted"> · {s.topic}</span>}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      {s.classGroup?.schedule ?? "시간 미정"} · 기록 {s._count.records}명
+                    </p>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -365,7 +398,14 @@ export default async function DashboardPage() {
               {duePayments.map((p) => (
                 <li key={p.id} className="flex items-center gap-2 text-sm">
                   <span className="min-w-0 flex-1 truncate">
-                    {p.student?.name ?? "—"} · {p.item}
+                    {p.student ? (
+                      <Link href={`/students/${p.student.id}`} className="hover:underline">
+                        {p.student.name}
+                      </Link>
+                    ) : (
+                      "—"
+                    )}{" "}
+                    · {p.item}
                   </span>
                   <span className="shrink-0 font-medium tabular-nums">{fmtWon(p.amount)}</span>
                 </li>
@@ -376,7 +416,15 @@ export default async function DashboardPage() {
 
         {/* 미납 */}
         <Card>
-          <SectionTitle title="미납" description={unpaidTotal > 0 ? fmtWon(unpaidTotal) : undefined} />
+          <SectionTitle
+            title="미납"
+            description={unpaidTotal > 0 ? fmtWon(unpaidTotal) : undefined}
+            action={
+              <Link href="/finance" className="text-sm font-medium text-brand-600 hover:underline">
+                회계
+              </Link>
+            }
+          />
           {unpaid.length === 0 ? (
             <EmptyState message="미납 건이 없습니다." />
           ) : (
@@ -385,7 +433,14 @@ export default async function DashboardPage() {
                 <li key={p.id} className="rounded-lg bg-rose-50/60 px-3 py-2">
                   <p className="flex items-center gap-2 text-sm">
                     <span className="min-w-0 flex-1 truncate font-medium">
-                      {p.student?.name ?? "—"} · {p.item}
+                      {p.student ? (
+                        <Link href={`/students/${p.student.id}`} className="hover:underline">
+                          {p.student.name}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}{" "}
+                      · {p.item}
                     </span>
                     <span className="shrink-0 tabular-nums">{fmtWon(p.amount)}</span>
                   </p>

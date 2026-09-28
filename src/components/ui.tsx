@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import type { Route } from "next";
+import Link from "next/link";
 
 export function cn(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(" ");
@@ -18,6 +20,8 @@ export function Card({
       className={cn(
         // 월넛 톤 그림자 — 아이보리 바탕 위에서 종이처럼 살짝 떠 보이게
         "rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(61,43,31,0.05),0_1px_1px_rgba(61,43,31,0.03)]",
+        // 그리드 안에서도 안쪽 표가 카드를 밀어내지 않고 표만 가로 스크롤되게 합니다.
+        "min-w-0",
         padded && "p-4 sm:p-5",
         className,
       )}
@@ -114,14 +118,22 @@ export function StatCard({
   value,
   hint,
   tone = "neutral",
+  href,
 }: {
   label: string;
   value: number | string;
   hint?: string;
   tone?: Tone;
+  /** 있으면 카드 전체가 해당 목록으로 가는 링크가 됩니다. */
+  href?: Route;
 }) {
-  return (
-    <Card className="relative min-w-0 overflow-hidden">
+  const card = (
+    <Card
+      className={cn(
+        "relative h-full min-w-0 overflow-hidden",
+        href && "transition group-hover:border-gold-400/70 group-hover:shadow-md",
+      )}
+    >
       {/* 카드 윗변의 가는 골드 선 — 요약 숫자 카드임을 표시합니다 */}
       <span
         aria-hidden
@@ -135,6 +147,13 @@ export function StatCard({
         {hint && <Badge tone={tone}>{hint}</Badge>}
       </p>
     </Card>
+  );
+  return href ? (
+    <Link href={href} className="group block rounded-xl">
+      {card}
+    </Link>
+  ) : (
+    card
   );
 }
 

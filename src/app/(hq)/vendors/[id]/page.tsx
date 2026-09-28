@@ -15,7 +15,8 @@ import {
   fmtWon,
 } from "@/lib/labels";
 
-import { deleteVendorEvent } from "../actions";
+import { NewContactLogForm } from "../../followups/followup-form";
+import { deleteVendor, deleteVendorEvent } from "../actions";
 import { NewVendorEventForm, VendorEditForm } from "../vendor-forms";
 
 export const dynamic = "force-dynamic";
@@ -112,7 +113,16 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
         <Card className="lg:col-span-3">
           <SectionTitle title="업체 정보" />
           <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 lg:grid-cols-6">
-            <Row label="전화" value={vendor.phone} />
+            <Row
+              label="전화"
+              value={
+                vendor.phone && (
+                  <a href={`tel:${vendor.phone}`} className="text-brand-700 hover:underline">
+                    {vendor.phone}
+                  </a>
+                )
+              }
+            />
             <Row label="이메일" value={vendor.email} />
             <Row label="카카오톡" value={vendor.kakaoId} />
             <Row label="최초 연락일" value={fmtDate(vendor.firstContactAt)} />
@@ -235,7 +245,7 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
             {vendor.contactLogs.length === 0 ? (
               <EmptyState message="연락 기록이 없습니다." />
             ) : (
-              <ul className="space-y-2">
+              <ul className="mb-3 space-y-2">
                 {vendor.contactLogs.map((c) => (
                   <li key={c.id} className="rounded-lg border border-border px-3 py-2">
                     <p className="flex items-center gap-2 text-xs text-muted">
@@ -247,8 +257,24 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                 ))}
               </ul>
             )}
+            <NewContactLogForm fixedTarget={`vendor:${vendor.id}`} />
           </Card>
         </div>
+      </div>
+
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
+        <p className="max-w-xl text-xs text-muted">
+          업체를 지우면 진행 기록과 연락 기록도 함께 지워집니다. 이 업체에 쓴 지출은 회계에 그대로
+          남습니다.
+        </p>
+        <form action={deleteVendor}>
+          <input type="hidden" name="id" value={vendor.id} />
+          <ConfirmButton
+            icon={false}
+            label="업체 삭제"
+            confirmLabel="진행 기록까지 모두 지울까요?"
+          />
+        </form>
       </div>
     </>
   );

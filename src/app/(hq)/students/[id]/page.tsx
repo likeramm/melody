@@ -13,13 +13,17 @@ import {
   ASSESSMENT_DECISION_LABEL,
   ATTENDANCE_STATUS_LABEL,
   CONTACT_TYPE_LABEL,
-  GUARDIAN_RELATION_LABEL,
   SKILL_AREAS,
   STUDENT_STATUS_LABEL,
   fmtWon,
 } from "@/lib/labels";
 
 import { StudentEditForm } from "../edit-form";
+import { ConfirmButton } from "@/components/confirm-button";
+
+import { NewContactLogForm } from "../../followups/followup-form";
+import { deleteAssessment, deleteStudent } from "../actions";
+import { GuardianItem } from "../guardian-item";
 import { NewAssessmentForm, NewGuardianForm, NewPortfolioForm } from "../student-forms";
 
 export const dynamic = "force-dynamic";
@@ -176,7 +180,16 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         <Card className="lg:col-span-3">
           <SectionTitle title="기본 정보" />
           <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 lg:grid-cols-6">
-            <Field label="연락처" value={student.phone} />
+            <Field
+              label="연락처"
+              value={
+                student.phone && (
+                  <a href={`tel:${student.phone}`} className="text-brand-700 hover:underline">
+                    {student.phone}
+                  </a>
+                )
+              }
+            />
             <Field label="어디서 알게 됐는지" value={student.source} />
             <Field label="최초 문의일" value={fmtDate(student.firstInquiryAt)} />
             <Field label="상담일" value={fmtDate(student.consultedAt)} />
@@ -335,6 +348,11 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
                 <li key={a.id} className="py-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold">{fmtDate(a.takenAt)}</span>
+                    <form action={deleteAssessment} className="order-last ml-auto">
+                      <input type="hidden" name="id" value={a.id} />
+                      <input type="hidden" name="studentId" value={student.id} />
+                      <ConfirmButton label="시험 기록 삭제" confirmLabel="이 시험 기록을 지울까요?" size={13} />
+                    </form>
                     {a.decision && (
                       <Badge
                         tone={
@@ -395,15 +413,17 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
           ) : (
             <ul className="mb-3 space-y-2">
               {student.guardians.map((g) => (
-                <li key={g.id} className="rounded-lg bg-slate-50 px-3 py-2">
-                  <p className="text-sm font-medium">
-                    {g.name}
-                    <span className="ml-1.5 text-xs font-normal text-muted">
-                      {GUARDIAN_RELATION_LABEL[g.relation]}
-                    </span>
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted">{g.phone ?? g.email ?? "연락처 없음"}</p>
-                </li>
+                <GuardianItem
+                  key={g.id}
+                  guardian={{
+                    id: g.id,
+                    studentId: student.id,
+                    name: g.name,
+                    relation: g.relation,
+                    phone: g.phone,
+                    email: g.email,
+                  }}
+                />
               ))}
             </ul>
           )}
@@ -423,7 +443,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
           {student.contactLogs.length === 0 ? (
             <EmptyState message="연락 기록이 없습니다." />
           ) : (
-            <ul className="space-y-2">
+            <ul className="mb-3 space-y-2">
               {student.contactLogs.map((c) => (
                 <li key={c.id} className="rounded-lg border border-border px-3 py-2">
                   <p className="flex items-center gap-2 text-xs text-muted">
@@ -438,6 +458,8 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
               ))}
             </ul>
           )}
+          {/* 이 학생으로 대상이 정해진 채 열려, 목록에서 찾을 필요가 없습니다. */}
+          <NewContactLogForm fixedTarget={`student:${student.id}`} />
         </Card>
 
         {/* Portfolio */}
@@ -540,6 +562,23 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
             </div>
           )}
         </Card>
+      </div>
+
+      {/* 삭제는 잘못 만든 기록(중복 등)을 지우는 용도입니다.
+          등록하지 않은 상담자도 남겨두는 게 원칙이라, 그 경우엔 상태를 바꾸도록 안내합니다. */}
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
+        <p className="max-w-xl text-xs text-muted">
+          등록하지 않은 상담자는 지우지 말고 상태를 <b>미등록</b>으로 바꿔 두세요. 나중에 다시
+          문의해도 예전 기록을 볼 수 있습니다. 삭제는 잘못 만든 기록을 지울 때만 쓰세요.
+        </p>
+        <form action={deleteStudent}>
+          <input type="hidden" name="id" value={student.id} />
+          <ConfirmButton
+            icon={false}
+            label="학생 삭제"
+            confirmLabel="상담·시험·수업 기록까지 모두 지울까요?"
+          />
+        </form>
       </div>
     </>
   );

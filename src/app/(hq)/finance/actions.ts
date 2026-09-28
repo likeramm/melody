@@ -67,6 +67,26 @@ export async function createPayment(_prev: FormState, formData: FormData): Promi
   return { ok: true };
 }
 
+export async function updatePayment(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const parsed = paymentSchema
+    .extend({ id: z.string().min(1) })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+
+  const { id, ...d } = parsed.data;
+  // 학생을 바꾼 경우 옛 학생 페이지도 갱신해야 하므로 먼저 읽어둡니다.
+  const before = await prisma.payment.findUnique({ where: { id }, select: { studentId: true } });
+  await prisma.payment.update({ where: { id }, data: d });
+
+  revalidatePath("/finance");
+  revalidatePath("/dashboard");
+  for (const sid of new Set([before?.studentId, d.studentId])) {
+    if (sid) revalidatePath(`/students/${sid}`);
+  }
+  return { ok: true };
+}
+
 /** 미납 건을 결제 완료로 바꿉니다. */
 export async function markPaid(formData: FormData) {
   await requireUser();
@@ -134,6 +154,28 @@ export async function createExpense(_prev: FormState, formData: FormData): Promi
   revalidatePath("/finance");
   revalidatePath("/dashboard");
   if (d.vendorId) revalidatePath(`/vendors/${d.vendorId}`);
+  return { ok: true };
+}
+
+export async function updateExpense(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const parsed = expenseSchema
+    .extend({ id: z.string().min(1) })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+
+  const { id, spentAt, ...d } = parsed.data;
+  const date = new Date(spentAt);
+  if (Number.isNaN(date.getTime())) return { error: "날짜가 올바르지 않습니다." };
+
+  const before = await prisma.expense.findUnique({ where: { id }, select: { vendorId: true } });
+  await prisma.expense.update({ where: { id }, data: { ...d, spentAt: date } });
+
+  revalidatePath("/finance");
+  revalidatePath("/dashboard");
+  for (const vid of new Set([before?.vendorId, d.vendorId])) {
+    if (vid) revalidatePath(`/vendors/${vid}`);
+  }
   return { ok: true };
 }
 

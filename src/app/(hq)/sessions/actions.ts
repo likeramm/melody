@@ -1,6 +1,8 @@
 "use server";
 
+import type { Route } from "next";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireUser } from "@/lib/auth";
@@ -14,7 +16,7 @@ const optionalText = z
   .transform((v) => v || null)
   .nullish();
 
-export type FormState = { error?: string; ok?: boolean; sessionId?: string };
+export type FormState = { error?: string; ok?: boolean };
 
 const sessionSchema = z.object({
   date: z.string().trim().min(1, "수업일을 입력하세요."),
@@ -60,7 +62,8 @@ export async function createSession(_prev: FormState, formData: FormData): Promi
 
   revalidatePath("/sessions");
   revalidatePath("/dashboard");
-  return { ok: true, sessionId: session.id };
+  // 수업을 만드는 목적은 곧바로 출결·점수를 적는 것이라, 그 화면으로 바로 보냅니다.
+  redirect(`/sessions/${session.id}` as Route);
 }
 
 export async function deleteSession(formData: FormData) {
@@ -182,6 +185,34 @@ export async function createClassGroup(_prev: FormState, formData: FormData): Pr
 
   try {
     await prisma.classGroup.create({ data: parsed.data });
+  } catch {
+    return { error: "같은 이름의 반이 이미 있습니다." };
+  }
+
+  revalidatePath("/sessions");
+  revalidatePath("/students");
+  return { ok: true };
+}
+
+export async function updateClassGroup(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const parsed = z
+    .object({
+      id: z.string().min(1),
+      name: z.string().trim().min(1, "반 이름을 입력하세요.").max(60),
+      schedule: optionalText,
+      // 체크하면 목록에서 숨깁니다. 학생·수업 기록은 그대로 남습니다.
+      closed: z
+        .string()
+        .optional()
+        .transform((v) => v === "on"),
+    })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+
+  const { id, closed, ...d } = parsed.data;
+  try {
+    await prisma.classGroup.update({ where: { id }, data: { ...d, isActive: !closed } });
   } catch {
     return { error: "같은 이름의 반이 이미 있습니다." };
   }

@@ -3,15 +3,8 @@
 import { useActionState, useState } from "react";
 import { Plus, X } from "lucide-react";
 
-import {
-  Field,
-  FormError,
-  Input,
-  Select,
-  SubmitButton,
-  Textarea,
-  optionsFrom,
-} from "@/components/form";
+import { Field, FormError, Input, Select, SubmitButton, Textarea, optionsFrom, useCloseOnSuccess } from "@/components/form";
+import { toDateInput } from "@/lib/dates";
 import { Card } from "@/components/ui";
 import { CONTACT_TYPE_LABEL, CONTACT_TYPE_ORDER } from "@/lib/labels";
 
@@ -19,10 +12,22 @@ import { addContactLog, type FormState } from "./actions";
 
 const TYPE_OPTIONS = optionsFrom(CONTACT_TYPE_ORDER, CONTACT_TYPE_LABEL);
 
-export function NewContactLogForm({ targets }: { targets: { value: string; label: string }[] }) {
+/**
+ * 연락 기록 추가.
+ * - targets 를 주면 대상을 고르는 목록이 나옵니다 (Follow-up 화면).
+ * - fixedTarget 을 주면 대상이 정해진 채로 열립니다 (학생·업체 상세 화면).
+ *   "student:<id>" 또는 "vendor:<id>" 형태입니다.
+ */
+export function NewContactLogForm({
+  targets = [],
+  fixedTarget,
+}: {
+  targets?: { value: string; label: string }[];
+  fixedTarget?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(addContactLog, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   if (!open) {
     return (
@@ -52,18 +57,27 @@ export function NewContactLogForm({ targets }: { targets: { value: string; label
           </button>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="대상" htmlFor="target" required className="lg:col-span-2">
-            <Select
-              id="target"
-              name="target"
-              required
-              placeholder="학생 또는 업체 선택"
-              options={targets}
-            />
-          </Field>
+        {fixedTarget && <input type="hidden" name="target" value={fixedTarget} />}
+        <div className={fixedTarget ? "grid gap-3 sm:grid-cols-2" : "grid gap-3 sm:grid-cols-2 lg:grid-cols-4"}>
+          {!fixedTarget && (
+            <Field label="대상" htmlFor="target" required className="lg:col-span-2">
+              <Select
+                id="target"
+                name="target"
+                required
+                placeholder="학생 또는 업체 선택"
+                options={targets}
+              />
+            </Field>
+          )}
           <Field label="연락일" htmlFor="contactedAt" required>
-            <Input id="contactedAt" name="contactedAt" type="date" required />
+            <Input
+              id="contactedAt"
+              name="contactedAt"
+              type="date"
+              required
+              defaultValue={toDateInput(new Date())}
+            />
           </Field>
           <Field label="연락 방법" htmlFor="type">
             <Select id="type" name="type" defaultValue="PHONE" options={TYPE_OPTIONS} />

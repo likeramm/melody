@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { Plus, X } from "lucide-react";
 
-import { Field, FormError, Input, Select, SubmitButton, Textarea, optionsFrom } from "@/components/form";
+import { Field, FormError, Input, Select, SubmitButton, Textarea, optionsFrom, useCloseOnSuccess } from "@/components/form";
 import { Card } from "@/components/ui";
 import {
   TASK_PRIORITY_LABEL,
@@ -30,7 +30,7 @@ export function NewTaskForm({
   const [state, formAction] = useActionState<TaskFormState, FormData>(createTask, {});
 
   // 저장에 성공하면 폼을 접고 다음 입력을 위해 초기화합니다.
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   if (!open) {
     return (
@@ -110,7 +110,7 @@ export function NewProjectForm() {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<TaskFormState, FormData>(createProject, {});
 
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   if (!open) {
     return (

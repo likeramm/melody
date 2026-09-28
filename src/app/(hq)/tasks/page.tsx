@@ -14,7 +14,7 @@ import {
   TASK_STATUS_LABEL,
 } from "@/lib/labels";
 
-import { deleteTask, toggleTaskDone } from "./actions";
+import { deleteTask, deleteTaskLink, toggleTaskDone } from "./actions";
 import { AddSubtaskForm, TaskEditForm } from "./edit-form";
 import { NewProjectForm, NewTaskForm } from "./task-forms";
 
@@ -267,16 +267,30 @@ export default async function TasksPage({
                       {task.links.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-2">
                           {task.links.map((l) => (
-                            <a
+                            <span
                               key={l.id}
-                              href={l.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-200"
+                              className="inline-flex items-center overflow-hidden rounded bg-slate-100 text-xs text-slate-700"
                             >
-                              <ExternalLink size={11} aria-hidden />
-                              {l.label}
-                            </a>
+                              <a
+                                href={l.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 py-0.5 pr-1 pl-2 hover:bg-slate-200"
+                              >
+                                <ExternalLink size={11} aria-hidden />
+                                {l.label}
+                              </a>
+                              {/* 잘못 붙인 링크를 떼어냅니다 */}
+                              <form action={deleteTaskLink}>
+                                <input type="hidden" name="id" value={l.id} />
+                                <ConfirmButton
+                                  label={`${l.label} 링크 삭제`}
+                                  confirmLabel="뗄까요?"
+                                  size={11}
+                                  className="p-1"
+                                />
+                              </form>
+                            </span>
                           ))}
                         </div>
                       )}

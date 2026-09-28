@@ -20,11 +20,14 @@ export function ConfirmButton({
   label = "삭제",
   confirmLabel = "정말 삭제할까요?",
   icon = true,
+  size = 15,
   className,
 }: {
   label?: string;
   confirmLabel?: string;
+  /** false 면 휴지통 아이콘 대신 글자가 적힌 버튼으로 보여줍니다. */
   icon?: boolean;
+  size?: number;
   className?: string;
 }) {
   const [armed, setArmed] = useState(false);
@@ -37,11 +40,20 @@ export function ConfirmButton({
         aria-label={label}
         title={label}
         className={cn(
-          "rounded p-1.5 text-slate-300 transition hover:bg-rose-50 hover:text-rose-600",
+          icon
+            ? "rounded p-1.5 text-slate-300 transition hover:bg-rose-50 hover:text-rose-600"
+            : "inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700",
           className,
         )}
       >
-        {icon ? <Trash2 size={15} aria-hidden /> : label}
+        {icon ? (
+          <Trash2 size={size} aria-hidden />
+        ) : (
+          <>
+            <Trash2 size={14} aria-hidden />
+            {label}
+          </>
+        )}
       </button>
     );
   }

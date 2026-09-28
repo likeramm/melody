@@ -134,3 +134,15 @@ export function SavedFlash({ show }: { show: boolean }) {
     </span>
   );
 }
+
+/**
+ * 저장에 성공한 "그 순간"에만 창을 닫습니다.
+ * state.ok 를 그대로 보면 성공 결과가 남아 있어서, 다시 열자마자 곧바로 닫혀 버립니다.
+ */
+export function useCloseOnSuccess(state: { ok?: boolean }, close: () => void) {
+  const [seen, setSeen] = useState(state);
+  if (state !== seen) {
+    setSeen(state);
+    if (state.ok) close();
+  }
+}

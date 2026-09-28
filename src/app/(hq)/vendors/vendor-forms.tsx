@@ -3,15 +3,8 @@
 import { useActionState, useState } from "react";
 import { Pencil, Plus, X } from "lucide-react";
 
-import {
-  Field,
-  FormError,
-  Input,
-  Select,
-  SubmitButton,
-  Textarea,
-  optionsFrom,
-} from "@/components/form";
+import { Field, FormError, Input, Select, SubmitButton, Textarea, optionsFrom, useCloseOnSuccess } from "@/components/form";
+import { toDateInput } from "@/lib/dates";
 import { Card } from "@/components/ui";
 import { VENDOR_EVENT_TYPE_LABEL, VENDOR_EVENT_TYPE_ORDER } from "@/lib/labels";
 
@@ -22,7 +15,7 @@ const EVENT_OPTIONS = optionsFrom(VENDOR_EVENT_TYPE_ORDER, VENDOR_EVENT_TYPE_LAB
 export function NewVendorForm() {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(createVendor, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   if (!open) {
     return (
@@ -110,7 +103,7 @@ export function NewVendorEventForm({
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(addVendorEvent, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   if (!open) {
     return (
@@ -143,7 +136,7 @@ export function NewVendorEventForm({
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="날짜" htmlFor="e-date" required>
-            <Input id="e-date" name="date" type="date" required />
+            <Input id="e-date" name="date" type="date" required defaultValue={toDateInput(new Date())} />
           </Field>
           <Field label="종류" htmlFor="e-type">
             <Select id="e-type" name="type" defaultValue="ETC" options={EVENT_OPTIONS} />
@@ -199,7 +192,7 @@ export type VendorEditValues = {
 export function VendorEditForm({ vendor }: { vendor: VendorEditValues }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(updateVendor, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   if (!open) {
     return (

@@ -3,15 +3,8 @@
 import { useActionState, useState } from "react";
 import { Plus, X } from "lucide-react";
 
-import {
-  Field,
-  FormError,
-  Input,
-  Select,
-  SubmitButton,
-  Textarea,
-  optionsFrom,
-} from "@/components/form";
+import { Field, FormError, Input, Select, SubmitButton, Textarea, optionsFrom, useCloseOnSuccess } from "@/components/form";
+import { toDateInput } from "@/lib/dates";
 import { Card } from "@/components/ui";
 import {
   ASSESSMENT_AREAS,
@@ -83,7 +76,7 @@ function Collapsible({
 export function NewStudentForm({ classGroups }: { classGroups: { id: string; name: string }[] }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(createStudent, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   return (
     <Collapsible
@@ -163,7 +156,7 @@ export function NewStudentForm({ classGroups }: { classGroups: { id: string; nam
 export function NewAssessmentForm({ studentId }: { studentId: string }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(addAssessment, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   return (
     <Collapsible label="입학시험 · 인터뷰 기록" title="시험 기록" open={open} setOpen={setOpen}>
@@ -172,7 +165,7 @@ export function NewAssessmentForm({ studentId }: { studentId: string }) {
 
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="시험일" htmlFor="takenAt" required>
-            <Input id="takenAt" name="takenAt" type="date" required />
+            <Input id="takenAt" name="takenAt" type="date" required defaultValue={toDateInput(new Date())} />
           </Field>
           <Field label="결과" htmlFor="decision">
             <Select id="decision" name="decision" placeholder="미정" options={DECISION_OPTIONS} />
@@ -219,7 +212,7 @@ export function NewAssessmentForm({ studentId }: { studentId: string }) {
 export function NewGuardianForm({ studentId }: { studentId: string }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(addGuardian, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   return (
     <Collapsible label="보호자 추가" title="보호자" open={open} setOpen={setOpen}>
@@ -253,7 +246,7 @@ export function NewGuardianForm({ studentId }: { studentId: string }) {
 export function NewPortfolioForm({ studentId }: { studentId: string }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(addPortfolio, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   return (
     <Collapsible label="Portfolio 결과물 추가" title="Portfolio" open={open} setOpen={setOpen}>

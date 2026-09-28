@@ -3,15 +3,7 @@
 import { useActionState, useState } from "react";
 import { Pencil, X } from "lucide-react";
 
-import {
-  Field,
-  FormError,
-  Input,
-  Select,
-  SubmitButton,
-  Textarea,
-  optionsFrom,
-} from "@/components/form";
+import { Field, FormError, Input, Select, SubmitButton, Textarea, optionsFrom, useCloseOnSuccess } from "@/components/form";
 import { Card } from "@/components/ui";
 import { STUDENT_STATUS_LABEL, STUDENT_STATUS_ORDER } from "@/lib/labels";
 
@@ -56,7 +48,7 @@ export function StudentEditForm({
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(updateStudent, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   if (!open) {
     return (

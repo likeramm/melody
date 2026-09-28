@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireUser } from "@/lib/auth";
@@ -101,9 +102,12 @@ export async function deleteVendor(formData: FormData) {
   await requireUser();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
+  // 진행 기록 · 연락 기록이 함께 지워집니다. 지출 기록은 업체 연결만 끊기고 회계에 남습니다.
   await prisma.vendor.delete({ where: { id } });
   revalidatePath("/vendors");
+  revalidatePath("/finance");
   revalidatePath("/dashboard");
+  redirect("/vendors");
 }
 
 // ── 진행 기록 (timeline) ─────────────────────────────────────

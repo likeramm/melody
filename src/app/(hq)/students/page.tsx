@@ -150,9 +150,22 @@ export default async function StudentsPage({
                       {[s.school, s.grade].filter(Boolean).join(" · ") || "—"}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-muted">
-                      {s.guardians[0]
-                        ? `${s.guardians[0].name}${s.guardians[0].phone ? ` · ${s.guardians[0].phone}` : ""}`
-                        : "—"}
+                      {s.guardians[0] ? (
+                        <>
+                          {s.guardians[0].name}
+                          {s.guardians[0].phone && (
+                            <>
+                              {" · "}
+                              {/* 휴대폰에서 누르면 바로 전화가 걸립니다 */}
+                              <a href={`tel:${s.guardians[0].phone}`} className="text-brand-700 hover:underline">
+                                {s.guardians[0].phone}
+                              </a>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-muted">{s.source ?? "—"}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-muted">

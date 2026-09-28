@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireUser } from "@/lib/auth";
@@ -151,8 +152,56 @@ export async function deleteStudent(formData: FormData) {
   await requireUser();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
+  // 보호자 · 입학시험 · 수업 기록 · 연락 기록이 함께 지워집니다. 결제 기록은 학생 연결만 끊기고 남습니다.
   await prisma.student.delete({ where: { id } });
   revalidatePath("/students");
+  revalidatePath("/dashboard");
+  // 상세 화면에서 지웠으므로 남아 있으면 빈 페이지가 됩니다. 목록으로 돌려보냅니다.
+  redirect("/students");
+}
+
+// ── 보호자 수정 · 삭제 ───────────────────────────────────────
+
+const guardianUpdateSchema = z.object({
+  id: z.string().min(1),
+  studentId: z.string().min(1),
+  name: z.string().trim().min(1, "보호자 이름을 입력하세요.").max(40),
+  relation: z.enum(["MOTHER", "FATHER", "OTHER"]).default("MOTHER"),
+  phone: optionalText,
+  email: optionalText,
+});
+
+export async function updateGuardian(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const parsed = guardianUpdateSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+
+  const { id, studentId, ...d } = parsed.data;
+  await prisma.guardian.update({ where: { id }, data: d });
+  revalidatePath(`/students/${studentId}`);
+  revalidatePath("/students");
+  return { ok: true };
+}
+
+export async function deleteGuardian(formData: FormData) {
+  await requireUser();
+  const id = String(formData.get("id") ?? "");
+  const studentId = String(formData.get("studentId") ?? "");
+  if (!id) return;
+  await prisma.guardian.delete({ where: { id } });
+  revalidatePath(`/students/${studentId}`);
+  revalidatePath("/students");
+}
+
+// ── 입학시험 기록 삭제 ───────────────────────────────────────
+
+export async function deleteAssessment(formData: FormData) {
+  await requireUser();
+  const id = String(formData.get("id") ?? "");
+  const studentId = String(formData.get("studentId") ?? "");
+  if (!id) return;
+  await prisma.assessment.delete({ where: { id } });
+  revalidatePath(`/students/${studentId}`);
   revalidatePath("/dashboard");
 }
 

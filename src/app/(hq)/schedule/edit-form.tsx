@@ -3,15 +3,7 @@
 import { useActionState, useState } from "react";
 import { Pencil, X } from "lucide-react";
 
-import {
-  Field,
-  FormError,
-  Input,
-  Select,
-  SubmitButton,
-  Textarea,
-  optionsFrom,
-} from "@/components/form";
+import { Field, FormError, Input, Select, SubmitButton, Textarea, optionsFrom, useCloseOnSuccess } from "@/components/form";
 import {
   MILESTONE_STATUS_LABEL,
   MILESTONE_TYPE_LABEL,
@@ -47,7 +39,7 @@ export function MilestoneEditForm({
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(updateMilestone, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   if (!open) {
     return (

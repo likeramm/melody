@@ -3,15 +3,7 @@
 import { useActionState, useState } from "react";
 import { Plus, X } from "lucide-react";
 
-import {
-  Field,
-  FormError,
-  Input,
-  Select,
-  SubmitButton,
-  Textarea,
-  optionsFrom,
-} from "@/components/form";
+import { Field, FormError, Input, Select, SubmitButton, Textarea, optionsFrom, useCloseOnSuccess } from "@/components/form";
 import { Card } from "@/components/ui";
 import {
   MILESTONE_STATUS_LABEL,
@@ -30,7 +22,7 @@ const STATUS_OPTIONS = optionsFrom(
 export function NewMilestoneForm({ projects }: { projects: { id: string; name: string }[] }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(createMilestone, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   if (!open) {
     return (

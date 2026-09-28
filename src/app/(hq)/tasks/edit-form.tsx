@@ -3,15 +3,7 @@
 import { useActionState, useState } from "react";
 import { Pencil, X } from "lucide-react";
 
-import {
-  Field,
-  FormError,
-  Input,
-  Select,
-  SubmitButton,
-  Textarea,
-  optionsFrom,
-} from "@/components/form";
+import { Field, FormError, Input, Select, SubmitButton, Textarea, optionsFrom, useCloseOnSuccess } from "@/components/form";
 import {
   TASK_PRIORITY_LABEL,
   TASK_PRIORITY_ORDER,
@@ -44,7 +36,7 @@ export function TaskEditForm({
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<TaskFormState, FormData>(updateTask, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   if (!open) {
     return (
@@ -155,7 +147,7 @@ export function TaskEditForm({
 export function AddSubtaskForm({ parentTaskId }: { parentTaskId: string }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<TaskFormState, FormData>(createTask, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   if (!open) {
     return (

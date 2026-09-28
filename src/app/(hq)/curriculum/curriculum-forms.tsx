@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { Plus, X } from "lucide-react";
 
-import { Field, FormError, Input, Select, SubmitButton, Textarea } from "@/components/form";
+import { Field, FormError, Input, Select, SubmitButton, Textarea, useCloseOnSuccess } from "@/components/form";
 import { Card } from "@/components/ui";
 
 import {
@@ -69,7 +69,7 @@ function Toggle({
 export function NewSemesterForm() {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(createSemester, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   return (
     <Toggle open={open} setOpen={setOpen} label="+ 학기" title="새 학기" compact>
@@ -97,7 +97,7 @@ export function NewSemesterForm() {
 export function NewCurriculumForm({ semesters }: { semesters: { id: string; name: string }[] }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(createCurriculum, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   return (
     <Toggle open={open} setOpen={setOpen} label="커리큘럼 추가" title="새 커리큘럼">
@@ -134,7 +134,7 @@ export function NewCurriculumForm({ semesters }: { semesters: { id: string; name
 export function NewLessonForm({ curriculumId }: { curriculumId: string }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(createLesson, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   return (
     <Toggle open={open} setOpen={setOpen} label="수업 추가" title="새 수업">

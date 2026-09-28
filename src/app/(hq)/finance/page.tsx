@@ -13,6 +13,7 @@ import {
   monthFromKey,
   monthRange,
   shiftMonthKey,
+  toDateInput,
   yearMonthOf,
 } from "@/lib/dates";
 import {
@@ -24,6 +25,7 @@ import {
 } from "@/lib/labels";
 
 import { deleteExpense, deletePayment, markPaid, refundPayment } from "./actions";
+import { ExpenseEditForm, PaymentEditForm } from "./edit-forms";
 import { NewExpenseForm, NewPaymentForm } from "./finance-forms";
 
 export const metadata: Metadata = { title: "회계" };
@@ -247,6 +249,20 @@ export default async function FinancePage({
                               </button>
                             </form>
                           )}
+                          <PaymentEditForm
+                            students={students}
+                            payment={{
+                              id: p.id,
+                              studentId: p.studentId,
+                              item: p.item,
+                              amount: p.amount,
+                              revenueType: p.revenueType,
+                              method: p.method,
+                              dueAt: toDateInput(p.dueAt),
+                              paidAt: toDateInput(p.paidAt),
+                              memo: p.memo,
+                            }}
+                          />
                           <form action={deletePayment}>
                             <input type="hidden" name="id" value={p.id} />
                             <ConfirmButton label="삭제" />
@@ -326,10 +342,29 @@ export default async function FinancePage({
                         </div>
                       </td>
                       <td className="px-4 py-2.5">
-                        <form action={deleteExpense}>
-                          <input type="hidden" name="id" value={e.id} />
-                          <ConfirmButton label="삭제" />
-                        </form>
+                        <div className="flex items-center gap-1">
+                          <ExpenseEditForm
+                            vendors={vendors}
+                            projects={projects}
+                            expense={{
+                              id: e.id,
+                              spentAt: toDateInput(e.spentAt),
+                              item: e.item,
+                              amount: e.amount,
+                              category: e.category,
+                              method: e.method,
+                              vendorId: e.vendorId,
+                              projectId: e.projectId,
+                              receiptUrl: e.receiptUrl,
+                              hasTaxInvoice: e.hasTaxInvoice,
+                              memo: e.memo,
+                            }}
+                          />
+                          <form action={deleteExpense}>
+                            <input type="hidden" name="id" value={e.id} />
+                            <ConfirmButton label="삭제" />
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   ))}

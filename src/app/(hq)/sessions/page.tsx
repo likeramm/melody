@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { fmtDate } from "@/lib/dates";
 
 import { deleteSession } from "./actions";
-import { NewClassGroupForm, NewSessionForm } from "./session-forms";
+import { ClassGroupChip, NewClassGroupForm, NewSessionForm } from "./session-forms";
 
 export const metadata: Metadata = { title: "수업 기록" };
 export const dynamic = "force-dynamic";
@@ -47,13 +47,15 @@ export default async function SessionsPage() {
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {classGroups.map((c) => (
-          <span
+          <ClassGroupChip
             key={c.id}
-            className="rounded-full border border-border bg-card px-3 py-1.5 text-sm text-slate-600"
-          >
-            {c.name}
-            <span className="ml-1.5 text-xs text-muted">{c._count.students}명</span>
-          </span>
+            group={{
+              id: c.id,
+              name: c.name,
+              schedule: c.schedule,
+              studentCount: c._count.students,
+            }}
+          />
         ))}
         <NewClassGroupForm />
       </div>

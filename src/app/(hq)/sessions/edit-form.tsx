@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { Pencil, X } from "lucide-react";
 
-import { Field, FormError, Input, Select, SubmitButton, Textarea } from "@/components/form";
+import { Field, FormError, Input, Select, SubmitButton, Textarea, useCloseOnSuccess } from "@/components/form";
 
 import { updateSession, type FormState } from "./actions";
 
@@ -30,7 +30,7 @@ export function SessionEditForm({
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(updateSession, {});
-  if (state.ok && open) setOpen(false);
+  useCloseOnSuccess(state, () => setOpen(false));
 
   if (!open) {
     return (
