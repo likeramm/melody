@@ -2,10 +2,11 @@
 
 import { useActionState } from "react";
 
+import { ConfirmButton } from "@/components/confirm-button";
 import { FormError, SubmitButton } from "@/components/form";
 import { ATTENDANCE_STATUS_LABEL, ATTENDANCE_STATUS_ORDER, SKILL_AREAS } from "@/lib/labels";
 
-import { saveSessionRecords, type FormState } from "./actions";
+import { removeStudentFromSession, saveSessionRecords, type FormState } from "./actions";
 
 export type RecordRow = {
   id: string;
@@ -48,6 +49,9 @@ export function RecordTable({ sessionId, rows }: { sessionId: string; rows: Reco
   return (
     <form action={formAction}>
       <input type="hidden" name="sessionId" value={sessionId} />
+      {/* 입력칸에서 Enter 를 누르면 브라우저는 폼의 첫 제출 버튼을 누릅니다.
+          줄 삭제 버튼이 그 자리를 차지하지 않도록 저장 버튼을 맨 앞에 숨겨 둡니다. */}
+      <button type="submit" hidden tabIndex={-1} aria-hidden />
 
       <div className="table-scroll">
         <table className="w-full min-w-[1000px] text-sm">
@@ -64,6 +68,7 @@ export function RecordTable({ sessionId, rows }: { sessionId: string; rows: Reco
                 </th>
               ))}
               <th className="px-3 py-2 font-medium">강사 코멘트</th>
+              <th className="px-3 py-2" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -115,6 +120,14 @@ export function RecordTable({ sessionId, rows }: { sessionId: string; rows: Reco
                   />
                   {/* 학부모 피드백은 화면을 좁히지 않도록 코멘트와 같은 칸에 숨겨 보냅니다. */}
                   <input type="hidden" name={`parentFeedback__${r.id}`} value="" />
+                </td>
+                <td className="px-3 py-2">
+                  {/* 잘못 들어간 학생을 이 수업에서만 뺍니다. 학생 정보는 그대로입니다. */}
+                  <ConfirmButton
+                    label={`${r.studentName} 이 수업에서 빼기`}
+                    confirmLabel="이 수업에서 뺄까요?"
+                    formAction={removeStudentFromSession.bind(null, r.id)}
+                  />
                 </td>
               </tr>
             ))}

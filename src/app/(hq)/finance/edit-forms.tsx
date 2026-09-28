@@ -1,9 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Pencil, X } from "lucide-react";
-
-import { Field, FormError, Input, Select, SubmitButton, optionsFrom, useCloseOnSuccess } from "@/components/form";
+import { Field, FormError, Input, Select, optionsFrom, useCloseOnSuccess } from "@/components/form";
+import { Modal, ModalActions, PencilButton } from "@/components/modal";
 import {
   EXPENSE_CATEGORY_LABEL,
   EXPENSE_CATEGORY_ORDER,
@@ -19,65 +18,6 @@ const REVENUE_OPTIONS = optionsFrom(["TUITION", "COACHING", "OTHER"] as const, R
 const CATEGORY_OPTIONS = optionsFrom(EXPENSE_CATEGORY_ORDER, EXPENSE_CATEGORY_LABEL);
 
 type Option = { id: string; name: string };
-
-/** 표의 행에서 여는 수정 창. 표 안에 폼을 펼치면 칸이 무너져서 화면 위에 띄웁니다. */
-function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 sm:p-8">
-      <div className="w-full max-w-2xl rounded-xl border border-border bg-card p-5 text-left shadow-xl">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-semibold">{title}</p>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="닫기"
-            className="rounded p-1 text-slate-400 hover:bg-slate-100"
-          >
-            <X size={16} aria-hidden />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function PencilButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title="수정"
-      className="rounded p-1.5 text-slate-300 transition hover:bg-slate-100 hover:text-slate-700"
-    >
-      <Pencil size={14} aria-hidden />
-    </button>
-  );
-}
-
-function Actions({ onCancel }: { onCancel: () => void }) {
-  return (
-    <div className="flex justify-end gap-2">
-      <button
-        type="button"
-        onClick={onCancel}
-        className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-      >
-        취소
-      </button>
-      <SubmitButton>저장</SubmitButton>
-    </div>
-  );
-}
 
 // ── 수입 ─────────────────────────────────────────────────────
 
@@ -161,7 +101,7 @@ export function PaymentEditForm({
           <Input id={`pe-memo-${p.id}`} name="memo" defaultValue={p.memo ?? ""} />
         </Field>
         <FormError message={state.error} />
-        <Actions onCancel={() => setOpen(false)} />
+        <ModalActions onCancel={() => setOpen(false)} />
       </form>
     </Modal>
   );
@@ -275,7 +215,7 @@ export function ExpenseEditForm({
           <Input id={`ee-memo-${e.id}`} name="memo" defaultValue={e.memo ?? ""} />
         </Field>
         <FormError message={state.error} />
-        <Actions onCancel={() => setOpen(false)} />
+        <ModalActions onCancel={() => setOpen(false)} />
       </form>
     </Modal>
   );

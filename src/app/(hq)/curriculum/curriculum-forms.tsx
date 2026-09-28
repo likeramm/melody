@@ -131,6 +131,123 @@ export function NewCurriculumForm({ semesters }: { semesters: { id: string; name
   );
 }
 
+export type LessonValues = {
+  week: number | null;
+  topic: string;
+  learningObjective: string | null;
+  reading: string | null;
+  lecture: string | null;
+  discussionQuestions: string | null;
+  writing: string | null;
+  studentPortfolio: string | null;
+  lecturePptUrl: string | null;
+  worksheetUrl: string | null;
+  assignments: string | null;
+  teacherNotes: string | null;
+  usedAt: string;
+  revisionNote: string | null;
+};
+
+/** 수업 추가·수정 창이 같은 칸을 쓰도록 묶어 둡니다. id 가 겹치지 않게 prefix 를 받습니다. */
+export function LessonFields({ prefix, v }: { prefix: string; v?: LessonValues }) {
+  const id = (k: string) => `${k}-${prefix}`;
+  const text = (k: keyof LessonValues) => (v?.[k] as string | null | undefined) ?? "";
+
+  return (
+    <>
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Field label="주차" htmlFor={id("w")}>
+          <Input
+            id={id("w")}
+            name="week"
+            type="number"
+            min={1}
+            inputMode="numeric"
+            defaultValue={v?.week ?? ""}
+          />
+        </Field>
+        <Field label="주제" htmlFor={id("t")} required className="sm:col-span-3">
+          <Input id={id("t")} name="topic" required maxLength={200} defaultValue={text("topic")} />
+        </Field>
+      </div>
+
+      <Field label="Learning Objective" htmlFor={id("lo")}>
+        <Textarea
+          id={id("lo")}
+          name="learningObjective"
+          rows={2}
+          defaultValue={text("learningObjective")}
+        />
+      </Field>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Reading" htmlFor={id("r")}>
+          <Textarea id={id("r")} name="reading" rows={2} defaultValue={text("reading")} />
+        </Field>
+        <Field label="Lecture" htmlFor={id("lec")}>
+          <Textarea id={id("lec")} name="lecture" rows={2} defaultValue={text("lecture")} />
+        </Field>
+        <Field label="Discussion Questions" htmlFor={id("dq")}>
+          <Textarea
+            id={id("dq")}
+            name="discussionQuestions"
+            rows={2}
+            defaultValue={text("discussionQuestions")}
+          />
+        </Field>
+        <Field label="Writing" htmlFor={id("wr")}>
+          <Textarea id={id("wr")} name="writing" rows={2} defaultValue={text("writing")} />
+        </Field>
+        <Field label="Student Portfolio" htmlFor={id("sp")}>
+          <Textarea
+            id={id("sp")}
+            name="studentPortfolio"
+            rows={2}
+            defaultValue={text("studentPortfolio")}
+          />
+        </Field>
+        <Field label="Assignments" htmlFor={id("as")}>
+          <Textarea id={id("as")} name="assignments" rows={2} defaultValue={text("assignments")} />
+        </Field>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Lecture PPT 링크" htmlFor={id("ppt")}>
+          <Input
+            id={id("ppt")}
+            name="lecturePptUrl"
+            type="url"
+            placeholder="https://"
+            defaultValue={text("lecturePptUrl")}
+          />
+        </Field>
+        <Field label="Worksheet 링크" htmlFor={id("ws")}>
+          <Input
+            id={id("ws")}
+            name="worksheetUrl"
+            type="url"
+            placeholder="https://"
+            defaultValue={text("worksheetUrl")}
+          />
+        </Field>
+      </div>
+
+      <Field label="Teacher Notes" htmlFor={id("tn")}>
+        <Textarea id={id("tn")} name="teacherNotes" rows={2} defaultValue={text("teacherNotes")} />
+      </Field>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="사용한 날짜" htmlFor={id("ud")}>
+          <Input id={id("ud")} name="usedAt" type="date" defaultValue={text("usedAt")} />
+        </Field>
+        <Field label="수정사항" htmlFor={id("rn")}>
+          <Input id={id("rn")} name="revisionNote" defaultValue={text("revisionNote")} />
+        </Field>
+      </div>
+    </>
+  );
+}
+
 export function NewLessonForm({ curriculumId }: { curriculumId: string }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<FormState, FormData>(createLesson, {});
@@ -140,63 +257,7 @@ export function NewLessonForm({ curriculumId }: { curriculumId: string }) {
     <Toggle open={open} setOpen={setOpen} label="수업 추가" title="새 수업">
       <form action={formAction} className="space-y-3">
         <input type="hidden" name="curriculumId" value={curriculumId} />
-
-        <div className="grid gap-3 sm:grid-cols-4">
-          <Field label="주차" htmlFor={`w-${curriculumId}`}>
-            <Input id={`w-${curriculumId}`} name="week" type="number" min={1} inputMode="numeric" />
-          </Field>
-          <Field label="주제" htmlFor={`t-${curriculumId}`} required className="sm:col-span-3">
-            <Input id={`t-${curriculumId}`} name="topic" required maxLength={200} />
-          </Field>
-        </div>
-
-        <Field label="Learning Objective" htmlFor={`lo-${curriculumId}`}>
-          <Textarea id={`lo-${curriculumId}`} name="learningObjective" rows={2} />
-        </Field>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Reading" htmlFor={`r-${curriculumId}`}>
-            <Textarea id={`r-${curriculumId}`} name="reading" rows={2} />
-          </Field>
-          <Field label="Lecture" htmlFor={`lec-${curriculumId}`}>
-            <Textarea id={`lec-${curriculumId}`} name="lecture" rows={2} />
-          </Field>
-          <Field label="Discussion Questions" htmlFor={`dq-${curriculumId}`}>
-            <Textarea id={`dq-${curriculumId}`} name="discussionQuestions" rows={2} />
-          </Field>
-          <Field label="Writing" htmlFor={`wr-${curriculumId}`}>
-            <Textarea id={`wr-${curriculumId}`} name="writing" rows={2} />
-          </Field>
-          <Field label="Student Portfolio" htmlFor={`sp-${curriculumId}`}>
-            <Textarea id={`sp-${curriculumId}`} name="studentPortfolio" rows={2} />
-          </Field>
-          <Field label="Assignments" htmlFor={`as-${curriculumId}`}>
-            <Textarea id={`as-${curriculumId}`} name="assignments" rows={2} />
-          </Field>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Lecture PPT 링크" htmlFor={`ppt-${curriculumId}`}>
-            <Input id={`ppt-${curriculumId}`} name="lecturePptUrl" type="url" placeholder="https://" />
-          </Field>
-          <Field label="Worksheet 링크" htmlFor={`ws-${curriculumId}`}>
-            <Input id={`ws-${curriculumId}`} name="worksheetUrl" type="url" placeholder="https://" />
-          </Field>
-        </div>
-
-        <Field label="Teacher Notes" htmlFor={`tn-${curriculumId}`}>
-          <Textarea id={`tn-${curriculumId}`} name="teacherNotes" rows={2} />
-        </Field>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="사용한 날짜" htmlFor={`ud-${curriculumId}`}>
-            <Input id={`ud-${curriculumId}`} name="usedAt" type="date" />
-          </Field>
-          <Field label="수정사항" htmlFor={`rn-${curriculumId}`}>
-            <Input id={`rn-${curriculumId}`} name="revisionNote" />
-          </Field>
-        </div>
-
+        <LessonFields prefix={`new-${curriculumId}`} />
         <FormError message={state.error} />
         <div className="flex justify-end">
           <SubmitButton>추가</SubmitButton>

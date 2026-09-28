@@ -290,17 +290,17 @@ export async function addAssessment(_prev: FormState, formData: FormData): Promi
 
 // ── Portfolio ────────────────────────────────────────────────
 
+const portfolioSchema = z.object({
+  studentId: z.string().min(1),
+  title: z.string().trim().min(1, "결과물 이름을 입력하세요.").max(120),
+  url: optionalText,
+  producedAt: optionalDate,
+  memo: optionalText,
+});
+
 export async function addPortfolio(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireUser();
-  const parsed = z
-    .object({
-      studentId: z.string().min(1),
-      title: z.string().trim().min(1, "결과물 이름을 입력하세요.").max(120),
-      url: optionalText,
-      producedAt: optionalDate,
-      memo: optionalText,
-    })
-    .safeParse(Object.fromEntries(formData));
+  const parsed = portfolioSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
 
   const { studentId, ...d } = parsed.data;
@@ -308,4 +308,27 @@ export async function addPortfolio(_prev: FormState, formData: FormData): Promis
 
   revalidatePath(`/students/${studentId}`);
   return { ok: true };
+}
+
+export async function updatePortfolio(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const parsed = portfolioSchema
+    .extend({ id: z.string().min(1) })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+
+  const { id, studentId, ...d } = parsed.data;
+  await prisma.portfolio.update({ where: { id }, data: d });
+
+  revalidatePath(`/students/${studentId}`);
+  return { ok: true };
+}
+
+export async function deletePortfolio(formData: FormData) {
+  await requireUser();
+  const id = String(formData.get("id") ?? "");
+  const studentId = String(formData.get("studentId") ?? "");
+  if (!id) return;
+  await prisma.portfolio.delete({ where: { id } });
+  revalidatePath(`/students/${studentId}`);
 }

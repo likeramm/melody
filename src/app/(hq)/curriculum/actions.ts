@@ -23,15 +23,15 @@ export type FormState = { error?: string; ok?: boolean };
 
 // ── 학기 ─────────────────────────────────────────────────────
 
+const semesterSchema = z.object({
+  name: z.string().trim().min(1, "학기 이름을 입력하세요.").max(40),
+  startDate: optionalDate,
+  endDate: optionalDate,
+});
+
 export async function createSemester(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireUser();
-  const parsed = z
-    .object({
-      name: z.string().trim().min(1, "학기 이름을 입력하세요.").max(40),
-      startDate: optionalDate,
-      endDate: optionalDate,
-    })
-    .safeParse(Object.fromEntries(formData));
+  const parsed = semesterSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
 
   try {
@@ -44,18 +44,55 @@ export async function createSemester(_prev: FormState, formData: FormData): Prom
   return { ok: true };
 }
 
+export async function updateSemester(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const parsed = semesterSchema
+    .extend({ id: z.string().min(1) })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+
+  const { id, ...d } = parsed.data;
+  try {
+    await prisma.semester.update({ where: { id }, data: d });
+  } catch {
+    return { error: "같은 이름의 학기가 이미 있습니다." };
+  }
+
+  revalidatePath("/curriculum");
+  return { ok: true };
+}
+
+/**
+ * 학기를 지웁니다. 커리큘럼이 남아 있으면 함께 지워지므로 거절하고,
+ * 빈 학기(잘못 만든 학기)만 지울 수 있게 합니다.
+ */
+export async function deleteSemester(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "학기를 찾을 수 없습니다." };
+
+  const count = await prisma.curriculum.count({ where: { semesterId: id } });
+  if (count > 0) {
+    return { error: `커리큘럼 ${count}개가 들어 있어 지울 수 없습니다. 커리큘럼을 먼저 지우거나 옮기세요.` };
+  }
+  await prisma.semester.delete({ where: { id } });
+
+  revalidatePath("/curriculum");
+  return { ok: true };
+}
+
 // ── 커리큘럼 ─────────────────────────────────────────────────
+
+const curriculumSchema = z.object({
+  semesterId: z.string().min(1, "학기를 선택하세요."),
+  title: z.string().trim().min(1, "커리큘럼 이름을 입력하세요.").max(120),
+  level: optionalText,
+  description: optionalText,
+});
 
 export async function createCurriculum(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireUser();
-  const parsed = z
-    .object({
-      semesterId: z.string().min(1, "학기를 선택하세요."),
-      title: z.string().trim().min(1, "커리큘럼 이름을 입력하세요.").max(120),
-      level: optionalText,
-      description: optionalText,
-    })
-    .safeParse(Object.fromEntries(formData));
+  const parsed = curriculumSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
 
   try {
@@ -65,6 +102,26 @@ export async function createCurriculum(_prev: FormState, formData: FormData): Pr
   }
 
   revalidatePath("/curriculum");
+  return { ok: true };
+}
+
+/** 이름·레벨·설명을 고치거나 다른 학기로 옮깁니다. */
+export async function updateCurriculum(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const parsed = curriculumSchema
+    .extend({ id: z.string().min(1) })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+
+  const { id, ...d } = parsed.data;
+  try {
+    await prisma.curriculum.update({ where: { id }, data: d });
+  } catch {
+    return { error: "그 학기에 같은 이름의 커리큘럼이 이미 있습니다." };
+  }
+
+  revalidatePath("/curriculum");
+  revalidatePath("/sessions");
   return { ok: true };
 }
 
@@ -169,6 +226,22 @@ export async function createLesson(_prev: FormState, formData: FormData): Promis
   await prisma.lesson.create({ data: { ...parsed.data, sortOrder: count } });
 
   revalidatePath("/curriculum");
+  return { ok: true };
+}
+
+export async function updateLesson(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const parsed = lessonSchema
+    .omit({ curriculumId: true })
+    .extend({ id: z.string().min(1) })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+
+  const { id, ...d } = parsed.data;
+  await prisma.lesson.update({ where: { id }, data: d });
+
+  revalidatePath("/curriculum");
+  revalidatePath("/sessions");
   return { ok: true };
 }
 

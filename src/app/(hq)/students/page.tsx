@@ -2,6 +2,7 @@ import type { Metadata, Route } from "next";
 import type { StudentStatus } from "@prisma/client";
 import Link from "next/link";
 
+import { AutoSubmitSelect } from "@/components/form";
 import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -179,23 +180,19 @@ export default async function StudentsPage({
                       <form action={changeStudentStatus} className="flex items-center gap-2">
                         <input type="hidden" name="id" value={s.id} />
                         <Badge tone={STATUS_TONE[s.status]}>{STUDENT_STATUS_LABEL[s.status]}</Badge>
-                        <select
+                        {/* key 로 저장 뒤 새 상태를 기본값으로 다시 그립니다 */}
+                        <AutoSubmitSelect
+                          key={s.status}
                           name="status"
                           defaultValue={s.status}
-                          className="rounded border border-border bg-white px-1.5 py-1 text-xs"
+                          aria-label={`${s.name} 상태 변경`}
                         >
                           {STUDENT_STATUS_ORDER.map((st) => (
                             <option key={st} value={st}>
                               {STUDENT_STATUS_LABEL[st]}
                             </option>
                           ))}
-                        </select>
-                        <button
-                          type="submit"
-                          className="rounded border border-border px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
-                        >
-                          변경
-                        </button>
+                        </AutoSubmitSelect>
                       </form>
                     </td>
                   </tr>

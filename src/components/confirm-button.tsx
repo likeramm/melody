@@ -22,6 +22,7 @@ export function ConfirmButton({
   icon = true,
   size = 15,
   className,
+  formAction,
 }: {
   label?: string;
   confirmLabel?: string;
@@ -29,6 +30,12 @@ export function ConfirmButton({
   icon?: boolean;
   size?: number;
   className?: string;
+  /**
+   * 다른 폼 안에 들어 있을 때, 그 폼의 동작 대신 이 동작을 실행합니다.
+   * (예: 기록 표 안에서 한 줄만 지우기) 지울 대상은 action.bind(null, id) 로 넘깁니다.
+   * 서버 액션 버튼의 name 은 React 가 덮어쓰므로 name/value 로는 보낼 수 없습니다.
+   */
+  formAction?: (formData: FormData) => void | Promise<void>;
 }) {
   const [armed, setArmed] = useState(false);
 
@@ -63,6 +70,7 @@ export function ConfirmButton({
       <span className="text-xs whitespace-nowrap text-rose-700">{confirmLabel}</span>
       <button
         type="submit"
+        formAction={formAction}
         className="rounded bg-rose-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-rose-700"
       >
         <Pending>삭제</Pending>

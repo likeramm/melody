@@ -162,13 +162,18 @@ export async function addStudentToSession(formData: FormData) {
   revalidatePath(`/sessions/${sessionId}`);
 }
 
-export async function removeStudentFromSession(formData: FormData) {
+/**
+ * 기록 표 안의 줄 삭제 버튼에서 부릅니다. 표 전체가 하나의 폼이라
+ * 지울 줄의 id 는 폼 값이 아니라 bind 로 받습니다.
+ */
+export async function removeStudentFromSession(id: string, formData: FormData) {
   await requireUser();
-  const id = String(formData.get("id") ?? "");
   const sessionId = String(formData.get("sessionId") ?? "");
   if (!id) return;
   await prisma.studentSessionRecord.delete({ where: { id } });
   revalidatePath(`/sessions/${sessionId}`);
+  revalidatePath("/sessions");
+  revalidatePath("/students");
 }
 
 // ── 수강반 ───────────────────────────────────────────────────

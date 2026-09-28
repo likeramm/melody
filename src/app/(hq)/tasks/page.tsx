@@ -5,6 +5,7 @@ import { ExternalLink } from "lucide-react";
 
 import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
 import { ConfirmButton } from "@/components/confirm-button";
+import { AutoSubmitSelect } from "@/components/form";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { fmtDate, toDateInput, todayRange, weekRange } from "@/lib/dates";
@@ -12,10 +13,12 @@ import {
   OPEN_TASK_STATUSES,
   TASK_PRIORITY_LABEL,
   TASK_STATUS_LABEL,
+  TASK_STATUS_ORDER,
 } from "@/lib/labels";
 
-import { deleteTask, deleteTaskLink, toggleTaskDone } from "./actions";
+import { deleteTask, deleteTaskLink, restoreProject, setTaskStatus, toggleTaskDone } from "./actions";
 import { AddSubtaskForm, TaskEditForm } from "./edit-form";
+import { ProjectEditForm, QuickAddTask } from "./quick-forms";
 import { NewProjectForm, NewTaskForm } from "./task-forms";
 
 export const metadata: Metadata = { title: "할 일" };
@@ -39,12 +42,14 @@ const PRIORITY_TONE: Record<TaskPriority, "danger" | "warning" | "neutral"> = {
   LATER: "neutral",
 };
 
-const STATUS_TONE: Record<TaskStatus, "neutral" | "info" | "warning" | "success"> = {
-  PLANNED: "neutral",
-  IN_PROGRESS: "info",
-  WAITING_EXTERNAL: "warning",
-  DONE: "success",
-  ON_HOLD: "neutral",
+/** 상태 드롭다운도 배지처럼 색으로 구분되게 합니다. */
+const STATUS_SELECT_TONE: Record<TaskStatus, string> = {
+  PLANNED: "",
+  // 기본 흰 배경을 덮어야 해서 ! 를 붙입니다.
+  IN_PROGRESS: "border-sky-200! bg-sky-50! text-sky-800",
+  WAITING_EXTERNAL: "border-amber-200! bg-amber-50! text-amber-800",
+  DONE: "border-emerald-200! bg-emerald-50! text-emerald-800",
+  ON_HOLD: "text-muted",
 };
 
 function whereFor(view: ViewKey, projectId?: string): Prisma.TaskWhereInput {
@@ -83,7 +88,7 @@ export default async function TasksPage({
   const { view: viewParam, project: projectParam } = await searchParams;
   const view: ViewKey = (VIEWS.find((v) => v.key === viewParam)?.key ?? "today") as ViewKey;
 
-  const [projects, tasks] = await Promise.all([
+  const [projects, tasks, archivedProjects] = await Promise.all([
     prisma.project.findMany({
       where: { isArchived: false },
       orderBy: { sortOrder: "asc" },
@@ -103,7 +108,16 @@ export default async function TasksPage({
       orderBy: [{ priority: "asc" }, { dueDate: "asc" }, { sortOrder: "asc" }],
       take: 200,
     }),
+    prisma.project.findMany({
+      where: { isArchived: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
+
+  const selectedProject = projects.find((p) => p.id === projectParam);
+  // 빠른 추가로 넣은 일이 지금 보기에서 바로 보이도록 마감일 기본값을 맞춥니다.
+  const quickDue = view === "today" || view === "week" ? toDateInput(new Date()) : "";
 
   const qs = (next: Partial<{ view: string; project: string }>) => {
     const params = new URLSearchParams();
@@ -164,7 +178,21 @@ export default async function TasksPage({
             <span className="ml-1.5 text-xs opacity-70">{p._count.tasks}</span>
           </Link>
         ))}
+        {selectedProject && (
+          <ProjectEditForm
+            key={selectedProject.id}
+            project={{
+              id: selectedProject.id,
+              name: selectedProject.name,
+              description: selectedProject.description,
+            }}
+          />
+        )}
         <NewProjectForm />
+      </div>
+
+      <div className="mb-2">
+        <QuickAddTask key={`${view}-${projectParam ?? ""}`} projectId={projectParam} defaultDue={quickDue} />
       </div>
 
       <div className="mb-4">
@@ -219,9 +247,23 @@ export default async function TasksPage({
                         <Badge tone={PRIORITY_TONE[task.priority]}>
                           {TASK_PRIORITY_LABEL[task.priority]}
                         </Badge>
-                        <Badge tone={STATUS_TONE[task.status]}>
-                          {TASK_STATUS_LABEL[task.status]}
-                        </Badge>
+                        {/* 고르는 즉시 저장됩니다 */}
+                        <form action={setTaskStatus} className="inline-flex">
+                          <input type="hidden" name="id" value={task.id} />
+                          <AutoSubmitSelect
+                            key={task.status}
+                            name="status"
+                            defaultValue={task.status}
+                            aria-label={`${task.title} 상태`}
+                            className={STATUS_SELECT_TONE[task.status]}
+                          >
+                            {TASK_STATUS_ORDER.map((st) => (
+                              <option key={st} value={st}>
+                                {TASK_STATUS_LABEL[st]}
+                              </option>
+                            ))}
+                          </AutoSubmitSelect>
+                        </form>
                         {task.project && <Badge tone="brand">{task.project.name}</Badge>}
                       </div>
 
@@ -327,6 +369,24 @@ export default async function TasksPage({
             );
           })}
         </ul>
+      )}
+
+      {archivedProjects.length > 0 && (
+        <div className="mt-8 flex flex-wrap items-center gap-2 border-t border-border pt-4 text-sm text-muted">
+          <span className="text-xs">보관한 프로젝트</span>
+          {archivedProjects.map((p) => (
+            <form key={p.id} action={restoreProject}>
+              <input type="hidden" name="id" value={p.id} />
+              <button
+                type="submit"
+                title="다시 목록에 꺼내기"
+                className="rounded-full border border-dashed border-border px-3 py-1 text-xs hover:border-brand-300 hover:text-brand-700"
+              >
+                {p.name} · 꺼내기
+              </button>
+            </form>
+          ))}
+        </div>
       )}
     </>
   );

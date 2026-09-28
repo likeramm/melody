@@ -163,6 +163,29 @@ export async function addVendorEvent(_prev: FormState, formData: FormData): Prom
   return { ok: true };
 }
 
+/**
+ * 진행 기록을 고칩니다. 결제 기록일 때 자동으로 만든 지출은 다시 만들지 않습니다.
+ * (이미 회계에 있는 지출을 두 번 잡지 않도록) 금액이 바뀌었다면 회계에서 함께 고칩니다.
+ */
+export async function updateVendorEvent(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const parsed = eventSchema
+    .extend({ id: z.string().min(1) })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+
+  const { id, vendorId, date, ...d } = parsed.data;
+  const eventDate = new Date(date);
+  if (Number.isNaN(eventDate.getTime())) return { error: "날짜가 올바르지 않습니다." };
+
+  await prisma.vendorEvent.update({ where: { id }, data: { ...d, date: eventDate } });
+
+  revalidatePath(`/vendors/${vendorId}`);
+  revalidatePath("/vendors");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 export async function deleteVendorEvent(formData: FormData) {
   await requireUser();
   const id = String(formData.get("id") ?? "");

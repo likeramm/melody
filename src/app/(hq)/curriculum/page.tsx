@@ -5,10 +5,11 @@ import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
 import { ConfirmButton } from "@/components/confirm-button";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { fmtDate } from "@/lib/dates";
+import { fmtDate, toDateInput } from "@/lib/dates";
 
 import { copyCurriculum, deleteCurriculum, deleteLesson } from "./actions";
 import { NewCurriculumForm, NewLessonForm, NewSemesterForm } from "./curriculum-forms";
+import { CurriculumEditForm, LessonEditForm, SemesterChip } from "./edit-forms";
 
 export const metadata: Metadata = { title: "커리큘럼" };
 export const dynamic = "force-dynamic";
@@ -40,13 +41,16 @@ export default async function CurriculumPage() {
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {semesters.map((s) => (
-          <span
+          <SemesterChip
             key={s.id}
-            className="rounded-full border border-border bg-card px-3 py-1.5 text-sm text-slate-600"
-          >
-            {s.name}
-            <span className="ml-1.5 text-xs text-muted">{s.curriculums.length}</span>
-          </span>
+            semester={{
+              id: s.id,
+              name: s.name,
+              startDate: toDateInput(s.startDate),
+              endDate: toDateInput(s.endDate),
+              curriculumCount: s.curriculums.length,
+            }}
+          />
         ))}
         <NewSemesterForm />
       </div>
@@ -126,6 +130,16 @@ export default async function CurriculumPage() {
                               </button>
                             </form>
 
+                            <CurriculumEditForm
+                              semesters={semesterOptions}
+                              curriculum={{
+                                id: c.id,
+                                semesterId: c.semesterId,
+                                title: c.title,
+                                level: c.level,
+                                description: c.description,
+                              }}
+                            />
                             <form action={deleteCurriculum}>
                               <input type="hidden" name="id" value={c.id} />
                               <ConfirmButton label="커리큘럼 삭제" />
@@ -212,10 +226,31 @@ export default async function CurriculumPage() {
                                       )}
                                     </td>
                                     <td className="px-4 py-2.5">
-                                      <form action={deleteLesson}>
-                                        <input type="hidden" name="id" value={l.id} />
-                                        <ConfirmButton label="수업 삭제" />
-                                      </form>
+                                      <div className="flex items-center gap-0.5">
+                                        <LessonEditForm
+                                          lesson={{
+                                            id: l.id,
+                                            week: l.week,
+                                            topic: l.topic,
+                                            learningObjective: l.learningObjective,
+                                            reading: l.reading,
+                                            lecture: l.lecture,
+                                            discussionQuestions: l.discussionQuestions,
+                                            writing: l.writing,
+                                            studentPortfolio: l.studentPortfolio,
+                                            lecturePptUrl: l.lecturePptUrl,
+                                            worksheetUrl: l.worksheetUrl,
+                                            assignments: l.assignments,
+                                            teacherNotes: l.teacherNotes,
+                                            usedAt: toDateInput(l.usedAt),
+                                            revisionNote: l.revisionNote,
+                                          }}
+                                        />
+                                        <form action={deleteLesson}>
+                                          <input type="hidden" name="id" value={l.id} />
+                                          <ConfirmButton label="수업 삭제" />
+                                        </form>
+                                      </div>
                                     </td>
                                   </tr>
                                 ))}

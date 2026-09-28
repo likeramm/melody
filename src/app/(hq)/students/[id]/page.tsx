@@ -22,8 +22,9 @@ import { StudentEditForm } from "../edit-form";
 import { ConfirmButton } from "@/components/confirm-button";
 
 import { NewContactLogForm } from "../../followups/followup-form";
-import { deleteAssessment, deleteStudent } from "../actions";
+import { deleteAssessment, deletePortfolio, deleteStudent } from "../actions";
 import { GuardianItem } from "../guardian-item";
+import { PortfolioEditForm } from "../portfolio-edit";
 import { NewAssessmentForm, NewGuardianForm, NewPortfolioForm } from "../student-forms";
 
 export const dynamic = "force-dynamic";
@@ -470,22 +471,45 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
           ) : (
             <ul className="mb-3 space-y-2">
               {student.portfolios.map((p) => (
-                <li key={p.id} className="rounded-lg bg-slate-50 px-3 py-2">
-                  <p className="text-sm font-medium">{p.title}</p>
-                  <p className="mt-0.5 flex items-center gap-2 text-xs text-muted">
-                    {fmtDate(p.producedAt)}
-                    {p.url && (
-                      <a
-                        href={p.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-brand-600 hover:underline"
-                      >
-                        <ExternalLink size={11} aria-hidden />
-                        열기
-                      </a>
+                <li
+                  key={p.id}
+                  className="flex items-start gap-1 rounded-lg bg-slate-50 py-2 pr-1 pl-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">{p.title}</p>
+                    {p.memo && (
+                      <p className="mt-0.5 text-xs whitespace-pre-wrap text-muted">{p.memo}</p>
                     )}
-                  </p>
+                    <p className="mt-0.5 flex items-center gap-2 text-xs text-muted">
+                      {fmtDate(p.producedAt)}
+                      {p.url && (
+                        <a
+                          href={p.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-brand-600 hover:underline"
+                        >
+                          <ExternalLink size={11} aria-hidden />
+                          열기
+                        </a>
+                      )}
+                    </p>
+                  </div>
+                  <PortfolioEditForm
+                    portfolio={{
+                      id: p.id,
+                      studentId: student.id,
+                      title: p.title,
+                      url: p.url,
+                      producedAt: toDateInput(p.producedAt),
+                      memo: p.memo,
+                    }}
+                  />
+                  <form action={deletePortfolio}>
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="studentId" value={student.id} />
+                    <ConfirmButton label={`${p.title} 삭제`} />
+                  </form>
                 </li>
               ))}
             </ul>

@@ -146,3 +146,30 @@ export function useCloseOnSuccess(state: { ok?: boolean }, close: () => void) {
     if (state.ok) close();
   }
 }
+
+/**
+ * 고르는 즉시 감싼 폼을 제출하는 드롭다운. 목록에서 상태를 바꿀 때 "변경" 버튼을 없애 줍니다.
+ * 저장 중에는 흐리게 보여 두 번 바꾸는 일을 막습니다.
+ */
+export function AutoSubmitSelect({
+  className,
+  children,
+  ...props
+}: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  const { pending } = useFormStatus();
+  return (
+    <select
+      {...props}
+      // 폼 데이터는 제출 순간에 모이므로, 그 뒤에 잠가도 값은 그대로 전송됩니다.
+      disabled={pending || props.disabled}
+      onChange={(e) => e.currentTarget.form?.requestSubmit()}
+      className={cn(
+        "cursor-pointer rounded border border-border bg-white px-1.5 py-1 text-xs transition",
+        pending && "opacity-50",
+        className,
+      )}
+    >
+      {children}
+    </select>
+  );
+}

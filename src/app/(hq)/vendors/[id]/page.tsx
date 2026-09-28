@@ -17,7 +17,7 @@ import {
 
 import { NewContactLogForm } from "../../followups/followup-form";
 import { deleteVendor, deleteVendorEvent } from "../actions";
-import { NewVendorEventForm, VendorEditForm } from "../vendor-forms";
+import { NewVendorEventForm, VendorEditForm, VendorEventEditForm } from "../vendor-forms";
 
 export const dynamic = "force-dynamic";
 
@@ -210,11 +210,25 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                     </p>
                     <p className="mt-0.5 text-sm">{e.description}</p>
                   </div>
-                  <form action={deleteVendorEvent} className="shrink-0">
-                    <input type="hidden" name="id" value={e.id} />
-                    <input type="hidden" name="vendorId" value={vendor.id} />
-                    <ConfirmButton label="삭제" />
-                  </form>
+                  <div className="flex shrink-0 items-start">
+                    <VendorEventEditForm
+                      projects={projects}
+                      event={{
+                        id: e.id,
+                        vendorId: vendor.id,
+                        date: toDateInput(e.date),
+                        type: e.type,
+                        description: e.description,
+                        amount: e.amount,
+                        projectId: e.projectId,
+                      }}
+                    />
+                    <form action={deleteVendorEvent}>
+                      <input type="hidden" name="id" value={e.id} />
+                      <input type="hidden" name="vendorId" value={vendor.id} />
+                      <ConfirmButton label="삭제" />
+                    </form>
+                  </div>
                 </li>
               ))}
             </ol>

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireUser } from "@/lib/auth";
@@ -129,6 +130,27 @@ export async function toggleTaskDone(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+/** 목록의 드롭다운에서 상태만 바로 바꿉니다. */
+export async function setTaskStatus(formData: FormData) {
+  await requireUser();
+  const parsed = z
+    .object({ id: z.string().min(1), status: z.enum(STATUS) })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return;
+
+  const { id, status } = parsed.data;
+  const existing = await prisma.task.findUnique({ where: { id }, select: { status: true } });
+  if (!existing || existing.status === status) return;
+
+  await prisma.task.update({
+    where: { id },
+    data: { status, completedAt: status === "DONE" ? new Date() : null },
+  });
+
+  revalidatePath("/tasks");
+  revalidatePath("/dashboard");
+}
+
 export async function deleteTask(formData: FormData) {
   await requireUser();
   const id = String(formData.get("id") ?? "");
@@ -164,6 +186,49 @@ export async function createProject(
 
   revalidatePath("/tasks");
   return { ok: true };
+}
+
+export async function updateProject(
+  _prev: TaskFormState,
+  formData: FormData,
+): Promise<TaskFormState> {
+  await requireUser();
+  const parsed = projectSchema
+    .extend({
+      id: z.string().min(1),
+      archived: z
+        .string()
+        .optional()
+        .transform((v) => v === "on"),
+    })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+
+  const { id, archived, ...d } = parsed.data;
+  try {
+    await prisma.project.update({ where: { id }, data: { ...d, isArchived: archived } });
+  } catch {
+    return { error: "같은 이름의 프로젝트가 이미 있습니다." };
+  }
+
+  revalidatePath("/tasks");
+  revalidatePath("/dashboard");
+  revalidatePath("/finance");
+  revalidatePath("/schedule");
+  // 보관한 프로젝트로 걸러 보던 화면에 남아 있지 않도록 전체 목록으로 돌아갑니다.
+  if (archived) redirect("/tasks");
+  return { ok: true };
+}
+
+/** 보관한 프로젝트를 다시 목록에 꺼냅니다. */
+export async function restoreProject(formData: FormData) {
+  await requireUser();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await prisma.project.update({ where: { id }, data: { isArchived: false } });
+  revalidatePath("/tasks");
+  revalidatePath("/finance");
+  revalidatePath("/schedule");
 }
 
 export async function deleteTaskLink(formData: FormData) {

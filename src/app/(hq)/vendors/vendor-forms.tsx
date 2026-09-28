@@ -8,7 +8,15 @@ import { toDateInput } from "@/lib/dates";
 import { Card } from "@/components/ui";
 import { VENDOR_EVENT_TYPE_LABEL, VENDOR_EVENT_TYPE_ORDER } from "@/lib/labels";
 
-import { addVendorEvent, createVendor, updateVendor, type FormState } from "./actions";
+import { Modal, ModalActions, PencilButton } from "@/components/modal";
+
+import {
+  addVendorEvent,
+  createVendor,
+  updateVendor,
+  updateVendorEvent,
+  type FormState,
+} from "./actions";
 
 const EVENT_OPTIONS = optionsFrom(VENDOR_EVENT_TYPE_ORDER, VENDOR_EVENT_TYPE_LABEL);
 
@@ -344,5 +352,87 @@ export function VendorEditForm({ vendor }: { vendor: VendorEditValues }) {
         </div>
       </form>
     </Card>
+  );
+}
+
+export type VendorEventValues = {
+  id: string;
+  vendorId: string;
+  date: string;
+  type: string;
+  description: string;
+  amount: number | null;
+  projectId: string | null;
+};
+
+/** 진행 기록 한 줄 수정. 날짜·종류 오타를 지우고 다시 쓰지 않아도 됩니다. */
+export function VendorEventEditForm({
+  event: e,
+  projects,
+}: {
+  event: VendorEventValues;
+  projects: { id: string; name: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [state, formAction] = useActionState<FormState, FormData>(updateVendorEvent, {});
+  useCloseOnSuccess(state, () => setOpen(false));
+
+  return (
+    <>
+      <PencilButton label={`${e.description} 수정`} onClick={() => setOpen(true)} />
+      {open && (
+        <Modal title="진행 기록 수정" onClose={() => setOpen(false)}>
+          <form action={formAction} className="space-y-3">
+            <input type="hidden" name="id" value={e.id} />
+            <input type="hidden" name="vendorId" value={e.vendorId} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="날짜" htmlFor={`ev-d-${e.id}`} required>
+                <Input id={`ev-d-${e.id}`} name="date" type="date" required defaultValue={e.date} />
+              </Field>
+              <Field label="종류" htmlFor={`ev-t-${e.id}`}>
+                <Select
+                  id={`ev-t-${e.id}`}
+                  name="type"
+                  defaultValue={e.type}
+                  options={EVENT_OPTIONS}
+                />
+              </Field>
+              <Field
+                label="금액"
+                htmlFor={`ev-a-${e.id}`}
+                hint="결제 기록으로 이미 회계에 들어간 지출은 회계 화면에서 따로 고쳐 주세요."
+              >
+                <Input
+                  id={`ev-a-${e.id}`}
+                  name="amount"
+                  inputMode="numeric"
+                  defaultValue={e.amount ?? ""}
+                />
+              </Field>
+              <Field label="프로젝트" htmlFor={`ev-p-${e.id}`}>
+                <Select
+                  id={`ev-p-${e.id}`}
+                  name="projectId"
+                  defaultValue={e.projectId ?? ""}
+                  placeholder="선택 안 함"
+                  options={projects.map((p) => ({ value: p.id, label: p.name }))}
+                />
+              </Field>
+            </div>
+            <Field label="내용" htmlFor={`ev-desc-${e.id}`} required>
+              <Input
+                id={`ev-desc-${e.id}`}
+                name="description"
+                required
+                maxLength={300}
+                defaultValue={e.description}
+              />
+            </Field>
+            <FormError message={state.error} />
+            <ModalActions onCancel={() => setOpen(false)} />
+          </form>
+        </Modal>
+      )}
+    </>
   );
 }
