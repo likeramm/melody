@@ -1,9 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [
-    {
-      "path": "/api/cron/recurring-tasks",
-      "schedule": "0 20 * * *"
-    }
-  ]
+  "regions": ["sin1"]
 }
